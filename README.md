@@ -1,2 +1,2 @@
-# swiftagent
+# SwiftAgent
 Swift Agent Package

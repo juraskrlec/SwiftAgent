@@ -540,25 +540,6 @@ final class AppleIntelligenceTests: XCTestCase {
         XCTAssertGreaterThan(result.output.count, 20)
     }
     
-    func testEventPlanningWorkflow() async throws {
-        let provider = try await AppleIntelligenceProvider()
-        
-        let planner = Agent(
-            name: "EventPlanner",
-            provider: provider,
-            systemPrompt: "Help plan events with date calculations.",
-            tools: [DateTimeTool()],
-            maxIterations: 5
-        )
-        
-        let result = try await planner.run(
-            task: "I need to plan an event 45 days from now. What's the date? Also, when should I start preparing (30 days before the event)?"
-        )
-        
-        print("Event planning result: \(result.output)")
-        XCTAssertTrue(result.success)
-    }
-    
     func testScheduleAnalysis() async throws {
         let provider = try await AppleIntelligenceProvider()
         

@@ -204,13 +204,21 @@ struct AnthropicStreamEvent: Decodable {
 }
 
 struct StreamDelta: Decodable {
-    let type: String
+    let type: String? 
     let text: String?
     let stopReason: String?
     
     enum CodingKeys: String, CodingKey {
         case type, text
         case stopReason = "stop_reason"
+    }
+    
+    // Custom decoder to handle missing fields gracefully
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = try container.decodeIfPresent(String.self, forKey: .type)
+        text = try container.decodeIfPresent(String.self, forKey: .text)
+        stopReason = try container.decodeIfPresent(String.self, forKey: .stopReason)
     }
 }
 
