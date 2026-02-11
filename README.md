@@ -29,6 +29,31 @@ Or in Xcode:
 2. Enter the repository URL
 3. Select version
 
+## Running Examples
+
+```swift
+
+# Build project
+swift build
+
+# Set keys
+export OPENAI_API_KEY="your-key"
+
+# Run Research Assistant
+swift run ResearchAssistant
+
+# Run Continuous Learner
+swift run ContinuousLearner
+```
+
+Or in Xcode:
+
+    1. Open Package.swift in Xcode
+    2. Select the scheme (ResearchAssistant or ContinuousLearner)
+    3. Edit Scheme → Run → Arguments → Environment Variables
+    4. Add OPENAI_API_KEY
+    4. Run!
+
 ## Quick Start
 
 ### Simple Agent with Claude
@@ -143,6 +168,9 @@ HTTPRequestTool()
 
 // File system operations
 FileSystemTool(allowedPaths: ["/tmp"])
+
+// Web search - Based on DuckDuckGo API
+WebSearchTool()
 ```
 
 ## Creating Custom Tools
@@ -627,14 +655,13 @@ MIT License - see [LICENSE](LICENSE) file for details
 ## Acknowledgments
 
 - Inspired by [LangChain](https://github.com/langchain-ai/langchain) and [LangGraph](https://github.com/langchain-ai/langgraph)
-- Built with ❤️ using Swift
 
 ## Support
 
-- 📖 [Documentation](https://github.com/juraskrlec/SwiftAgent/wiki)
-- 🐛 [Issue Tracker](https://github.com/juraskrlec/SwiftAgent/issues)
-- 💬 [Discussions](https://github.com/juraskrlec/SwiftAgent/discussions)
-- 📧 Email: jskrlec4@gmail.com
+- [Documentation](https://github.com/juraskrlec/SwiftAgent/wiki)
+- [Issue Tracker](https://github.com/juraskrlec/SwiftAgent/issues)
+- [Discussions](https://github.com/juraskrlec/SwiftAgent/discussions)
+- Email: jskrlec4@gmail.com
 
 ---
 

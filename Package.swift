@@ -17,6 +17,14 @@ let package = Package(
             name: "SwiftAgent",
             targets: ["SwiftAgent"]
         ),
+        .executable(
+            name: "ContinuousLearner",
+            targets: ["ContinuousLearner"]
+        ),
+        .executable(
+            name: "ResearchAssistant",
+            targets: ["ResearchAssistant"]
+        )
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -28,5 +36,15 @@ let package = Package(
             name: "SwiftAgentTests",
             dependencies: ["SwiftAgent"]
         ),
+        .executableTarget(
+            name: "ContinuousLearner",
+            dependencies: ["SwiftAgent"],
+            path: "Examples/ContinuousLearner"
+        ),
+        .executableTarget(
+            name: "ResearchAssistant",
+            dependencies: ["SwiftAgent"],
+            path: "Examples/ResearchAssistant"
+        )
     ]
 )
