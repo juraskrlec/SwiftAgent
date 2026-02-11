@@ -18,7 +18,7 @@ final class ClaudeProviderTests: XCTestCase {
         super.setUp()
         
         // Get API key from environment variable
-        apiKey = "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"
+        apiKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"]
         
         // Skip all tests if API key is not set
         guard apiKey != nil && !apiKey.isEmpty else {

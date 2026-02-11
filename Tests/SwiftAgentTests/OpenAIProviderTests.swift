@@ -14,14 +14,20 @@ final class OpenAIProviderTests: XCTestCase {
     
     var apiKey: String!
     
-    override func setUp() {
-        super.setUp()
-        apiKey = ""
+    override func setUp() async throws {
+        try await super.setUp()
+        
+        guard let apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"],
+              !apiKey.isEmpty else {
+            throw XCTSkip("OPENAI_API_KEY not set")
+        }
+        
+        self.apiKey = apiKey
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         apiKey = nil
-        super.tearDown()
+        try await super.tearDown()
     }
     
     // MARK: - Tests
