@@ -77,7 +77,6 @@ public actor ClaudeProvider: LLMProvider {
         return AsyncThrowingStream { continuation in
             Task {
                 var currentText = ""
-                var currentToolCalls: [ToolCall] = []
                 var usage: TokenUsage?
                 
                 do {

@@ -231,10 +231,7 @@ actor ResearchGraph {
         )
     }
     
-    private func setupGraph() async {
-        // Clear previous graph
-        // (In production, you might want to reuse the graph)
-        
+    private func setupGraph() async {        
         // Node 1: Planning
         await graph.addNode("plan", agent: planner)
         

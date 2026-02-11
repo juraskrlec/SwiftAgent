@@ -180,7 +180,6 @@ public actor Agent {
                         
                         var currentText = ""
                         var currentToolCalls: [ToolCall] = []
-                        var usage: TokenUsage?
                         
                         for try await chunk in responseStream {
                             try Task.checkCancellation()
@@ -194,9 +193,8 @@ public actor Agent {
                                 currentToolCalls.append(toolCall)
                                 continuation.yield(.toolCall(toolCall))
                                 
-                            case .done(let stopReason):
+                            case .done(_):
                                 if let chunkUsage = chunk.usage {
-                                    usage = chunkUsage
                                     totalTokens += chunkUsage.totalTokens
                                 }
                             }

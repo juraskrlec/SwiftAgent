@@ -642,7 +642,6 @@ swift test
 - [ ] Additional providers (Gemini, Llama, etc.)
 - [ ] Memory system for persistent conversation history
 - [ ] Agent templates for common use cases
-- [ ] RAG (Retrieval Augmented Generation) support
 - [ ] Vision/multimodal tool support
 - [ ] Agent observability and debugging tools
 - [ ] Async tool execution

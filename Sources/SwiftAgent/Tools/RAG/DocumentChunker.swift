@@ -76,7 +76,7 @@ public struct DocumentChunker {
         var currentChunk: [String] = []
         var currentLength = 0
         
-        for (index, sentence) in sentences.enumerated() {
+        for (_, sentence) in sentences.enumerated() {
             let sentenceWords = sentence.split(separator: " ").count
             
             if currentLength + sentenceWords > targetChunkSize && !currentChunk.isEmpty {
