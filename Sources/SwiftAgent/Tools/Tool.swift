@@ -57,6 +57,7 @@ public enum ToolError: Error, LocalizedError {
     case executionFailed(String)
     case invalidArguments(String)
     case toolNotFound(String)
+    case permissionDenied(String)
     
     public var errorDescription: String? {
         switch self {
@@ -66,6 +67,8 @@ public enum ToolError: Error, LocalizedError {
             return "Invalid tool arguments: \(message)"
         case .toolNotFound(let name):
             return "Tool not found: \(name)"
+        case .permissionDenied(let message):
+            return "Permission denied: \(message)"
         }
     }
 }
