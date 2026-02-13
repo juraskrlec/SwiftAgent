@@ -45,6 +45,11 @@ let package = Package(
             name: "ResearchAssistant",
             dependencies: ["SwiftAgent"],
             path: "Examples/ResearchAssistant"
+        ),
+        .executableTarget(
+            name: "HITLExample",
+            dependencies: ["SwiftAgent"],
+            path: "Examples/HITLExample"
         )
     ]
 )
