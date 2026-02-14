@@ -10,11 +10,11 @@ import Foundation
 /// An autonomous agent that can use tools to accomplish tasks
 public actor Agent {
     public let name: String
-    private let provider: LLMProvider
-    private let systemPrompt: String?
-    private let tools: [String: Tool]
-    private let maxIterations: Int
-    private let options: GenerationOptions
+    public let provider: LLMProvider
+    public let systemPrompt: String?
+    public let tools: [String: Tool]
+    public let maxIterations: Int
+    public let options: GenerationOptions
     
     // Track running task to prevent concurrent executions
     private var runningTask: Task<AgentResult, Error>?
@@ -33,6 +33,29 @@ public actor Agent {
         self.tools = Dictionary(uniqueKeysWithValues: tools.map { ($0.name, $0) })
         self.maxIterations = maxIterations
         self.options = options
+    }
+    
+    public func executeTool(_ toolCall: ToolCall) async throws -> String {
+        guard let tool = tools[toolCall.name] else {
+            throw ToolError.toolNotFound(toolCall.name)
+        }
+        
+        let arguments = toolCall.arguments.mapValues { $0.value }
+        
+        do {
+            return try await tool.execute(arguments: arguments)
+        } catch {
+            throw ToolError.executionFailed("Tool '\(toolCall.name)' failed: \(error.localizedDescription)")
+        }
+    }
+    
+    public func generateResponse(messages: [Message], tools: [Tool]? = nil) async throws -> LLMResponse {
+        let toolsToUse = tools ?? Array(self.tools.values)
+        return try await provider.generate(
+            messages: messages,
+            tools: toolsToUse.isEmpty ? nil : toolsToUse,
+            options: options
+        )
     }
     
     /// Run the agent synchronously with a single task
@@ -269,25 +292,6 @@ public actor Agent {
             tools: currentTools,
             options: currentOptions
         )
-    }
-    
-    // MARK: - Private Helpers
-    
-    private func executeTool(_ toolCall: ToolCall) async throws -> String {
-        // Capture tool reference before await
-        guard let tool = tools[toolCall.name] else {
-            throw ToolError.toolNotFound(toolCall.name)
-        }
-        
-        // Convert AnyCodable arguments to [String: Any]
-        let arguments = toolCall.arguments.mapValues { $0.value }
-        
-        do {
-            // Suspension point - but we've captured everything we need
-            return try await tool.execute(arguments: arguments)
-        } catch {
-            throw ToolError.executionFailed("Tool '\(toolCall.name)' failed: \(error.localizedDescription)")
-        }
     }
 }
 

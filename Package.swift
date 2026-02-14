@@ -6,8 +6,8 @@ import PackageDescription
 let package = Package(
     name: "SwiftAgent",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13),
+        .iOS(.v17),
+        .macOS(.v14),
         .watchOS(.v9),
         .tvOS(.v16)
     ],
