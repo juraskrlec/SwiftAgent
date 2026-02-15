@@ -107,7 +107,7 @@ actor ResearchGraph {
             Make subtopics specific and searchable.
             """,
             tools: [],
-            maxIterations: 2
+            maxIterations: 10
         )
         
         // 2. Researcher - Searches for information
@@ -120,7 +120,7 @@ actor ResearchGraph {
             Summarize the key findings from multiple sources.
             """,
             tools: [WebSearchTool()],
-            maxIterations: 5
+            maxIterations: 10
         )
         
         // 3. Extractor - Pulls out key facts
@@ -137,7 +137,7 @@ actor ResearchGraph {
             Format as bullet points with [Source: ...] citations.
             """,
             tools: [],
-            maxIterations: 2
+            maxIterations: 10
         )
         
         // 4. Verifier - Cross-checks information
@@ -154,7 +154,7 @@ actor ResearchGraph {
             Return a verification report.
             """,
             tools: [],
-            maxIterations: 3
+            maxIterations: 10
         )
         
         // 5. Synthesizer - Creates final report
@@ -173,7 +173,7 @@ actor ResearchGraph {
             Write clearly and professionally.
             """,
             tools: [],
-            maxIterations: 3
+            maxIterations: 10
         )
         
         self.graph = AgentGraph(maxIterations: 20)

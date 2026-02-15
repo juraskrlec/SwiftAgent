@@ -43,7 +43,7 @@ public actor MemoryManager {
         var memory = try await getWorkingMemory(threadId: threadId)
         
         // Extract entities and facts from recent messages
-        let recentMessages = messages.suffix(5)
+        let recentMessages = Array(messages.suffix(5))
         let conversationText = recentMessages.map { $0.content }.joined(separator: "\n")
         
         // Use LLM to extract structured information

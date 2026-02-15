@@ -24,6 +24,18 @@ let package = Package(
         .executable(
             name: "ResearchAssistant",
             targets: ["ResearchAssistant"]
+        ),
+        .executable(
+            name: "PersonalAssistant",
+            targets: ["PersonalAssistant"]
+        ),
+        .executable(
+            name: "OAuthHelper",
+            targets: ["OAuthHelper"]
+        ),
+        .executable(
+            name: "RefreshToken",
+            targets: ["RefreshToken"]
         )
     ],
     targets: [
@@ -47,9 +59,19 @@ let package = Package(
             path: "Examples/ResearchAssistant"
         ),
         .executableTarget(
-            name: "HITLExample",
+            name: "PersonalAssistant",
             dependencies: ["SwiftAgent"],
-            path: "Examples/HITLExample"
+            path: "Examples/PersonalAssistant"
+        ),
+        .executableTarget(
+            name: "OAuthHelper",
+            dependencies: ["SwiftAgent"],
+            path: "Examples/OAuthHelper"
+        ),
+        .executableTarget(
+            name: "RefreshToken",
+            dependencies: ["SwiftAgent"],
+            path: "Examples/RefreshToken"
         )
     ]
 )

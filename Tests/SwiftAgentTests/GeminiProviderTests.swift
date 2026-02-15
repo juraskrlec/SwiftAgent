@@ -19,7 +19,7 @@ final class GeminiProviderTests: XCTestCase {
               !apiKey.isEmpty else {
             throw XCTSkip("GOOGLE_API_KEY not set")
         }
-        
+                
         self.apiKey = apiKey
     }
     

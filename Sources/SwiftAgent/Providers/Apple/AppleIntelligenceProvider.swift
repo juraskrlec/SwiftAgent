@@ -56,11 +56,7 @@ public actor AppleIntelligenceProvider: LLMProvider {
         )
     }
     
-    public func stream(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
+    public func stream(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> AsyncThrowingStream<LLMChunk, Error> {
         let prompt = buildPrompt(from: messages)
         let session = createSession(with: nil)
         

@@ -122,8 +122,8 @@ final class AppleIntelligenceTests: XCTestCase {
             options: .default
         )
         
-        XCTAssertFalse(response.content.isEmpty)
         print("Multiple date calculations response: \(response.content)")
+        XCTAssertFalse(response.content.isEmpty)
     }
     
     func testAppleIntelligenceSubtractDays() async throws {

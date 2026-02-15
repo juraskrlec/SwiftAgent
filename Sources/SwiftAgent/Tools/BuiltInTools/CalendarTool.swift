@@ -16,7 +16,7 @@ actor CalendarActor {
     private init() {}
     
     func requestAccess() async throws -> Bool {
-        try await eventStore.requestAccess(to: .event)
+        try await eventStore.requestFullAccessToEvents()
     }
     
     func createEvent(
