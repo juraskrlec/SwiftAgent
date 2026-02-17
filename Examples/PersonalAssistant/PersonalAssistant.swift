@@ -15,13 +15,14 @@ struct PersonalAssistant {
         print(String(repeating: "=", count: 70))
         
         // Setup
-        guard let geminiKey = ProcessInfo.processInfo.environment["GOOGLE_API_KEY"] else {
-            print("Please set GOOGLE_API_KEY environment variable")
-            print("   Get it from: https://aistudio.google.com/app/apikey")
-            return
-        }
         
-        guard let googleToken = ProcessInfo.processInfo.environment["GOOGLE_ACCESS_TOKEN"] else {
+        let geminiKey = ProcessInfo.processInfo.environment["GOOGLE_API_KEY"] ?? {
+            print("\nPlease set GOOGLE_API_KEY: ", terminator: "")
+            fflush(stdout)
+            return readLine() ?? ""
+        }()
+        
+        let googleToken = ProcessInfo.processInfo.environment["GOOGLE_ACCESS_TOKEN"] ?? {
             print("Please set GOOGLE_ACCESS_TOKEN environment variable")
             print("   Run the OAuth flow first to get your token")
             print("\nQuick setup:")
@@ -29,8 +30,10 @@ struct PersonalAssistant {
             print("   2. Enable Google Calendar API")
             print("   3. Create OAuth credentials")
             print("   4. Run the OAuth example to get access token")
-            return
-        }
+            print("\nEnter Google Token: ", terminator: "")
+            fflush(stdout)
+            return readLine() ?? ""
+        }()
         
         // Create the personal assistant
         let assistant = PersonalAssistantGraph(
@@ -87,7 +90,7 @@ actor PersonalAssistantGraph {
         self.geminiKey = geminiKey
         self.googleToken = googleToken
         
-        let provider = GeminiProvider(apiKey: geminiKey, model: .gemini3Flash)
+        let provider = OpenAIProvider(apiKey: geminiKey, model: .gpt51Mini)
         
         // Get current date/time for context
         let now = Date()

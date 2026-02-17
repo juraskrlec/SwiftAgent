@@ -9,7 +9,7 @@ import Foundation
 
 /// A tool for making HTTP requests
 public struct HTTPRequestTool: Tool {
-    public let name = "http_request"
+    public let name = "http_request_tool"
     public let description = "Make HTTP requests (GET, POST, PUT, DELETE) to external APIs"
     
     public var parameters: ToolParameters {

@@ -34,7 +34,7 @@ public struct ToolParameters: Codable, Sendable {
 }
 
 /// Individual parameter property
-public struct ParameterProperty: Codable, Sendable {
+public final class ParameterProperty: Codable, Sendable {
     public let type: String
     public let description: String
     public let enumValues: [String]?

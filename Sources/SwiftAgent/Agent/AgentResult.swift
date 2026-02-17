@@ -15,13 +15,7 @@ public struct AgentResult: Sendable {
     public let success: Bool
     public let error: Error?
     
-    public init(
-        output: String,
-        state: AgentState,
-        totalTokens: Int = 0,
-        success: Bool = true,
-        error: Error? = nil
-    ) {
+    public init(output: String, state: AgentState, totalTokens: Int = 0, success: Bool = true, error: Error? = nil) {
         self.output = output
         self.state = state
         self.totalTokens = totalTokens

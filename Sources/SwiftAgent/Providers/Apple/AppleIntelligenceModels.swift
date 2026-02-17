@@ -24,6 +24,6 @@ public typealias Prompt = FoundationModels.Prompt
 public typealias Generable = FoundationModels.Generable
 
 @available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)
-public typealias ToolProtocol = FoundationModels.Tool
+public typealias FMTool = FoundationModels.Tool
 
 #endif

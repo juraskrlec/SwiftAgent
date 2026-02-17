@@ -214,7 +214,7 @@ enum CalendarError: Error, LocalizedError {
 
 /// Manage calendar events and schedules
 public struct CalendarTool: Tool, Sendable {
-    public let name = "calendar"
+    public let name = "calendar_tool"
     public let description = """
     Create, read, update, delete, and search calendar events. Can manage the user's calendar, 
     schedule meetings, check availability, and find upcoming events.

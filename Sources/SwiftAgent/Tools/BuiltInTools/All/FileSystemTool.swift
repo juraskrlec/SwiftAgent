@@ -9,7 +9,7 @@ import Foundation
 
 /// A tool for reading and writing files
 public struct FileSystemTool: Tool, Sendable {
-    public let name = "file_system"
+    public let name = "file_system_tool"
     public let description = "Read, write, list, or delete files in allowed directories. Operations: 'read', 'write', 'list', 'delete', 'exists'"
     
     private let allowedPaths: [String]

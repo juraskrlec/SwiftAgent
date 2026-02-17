@@ -9,7 +9,7 @@ import Foundation
 
 /// A tool for getting current date, time, and performing date calculations
 public struct DateTimeTool: Tool, Sendable {
-    public let name = "datetime"
+    public let name = "datetime_tool"
     public let description = "Get current date/time, calculate date differences, or format dates. Operations: 'now', 'add', 'subtract', 'format', 'parse'"
     
     public var parameters: ToolParameters {
@@ -105,11 +105,7 @@ public struct DateTimeTool: Tool, Sendable {
         return formatter.string(from: date)
     }
     
-    private func performDateCalculation(
-        operation: String,
-        arguments: [String: Any],
-        timeZone: TimeZone
-    ) throws -> String {
+    private func performDateCalculation(operation: String, arguments: [String: Any], timeZone: TimeZone) throws -> String {
         guard let amount = arguments["amount"] as? Int else {
             throw ToolError.invalidArguments("Missing 'amount' parameter")
         }

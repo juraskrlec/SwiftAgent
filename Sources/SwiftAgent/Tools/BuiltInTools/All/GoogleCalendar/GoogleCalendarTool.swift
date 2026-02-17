@@ -9,7 +9,7 @@ import Foundation
 
 /// Tool for interacting with Google Calendar
 public struct GoogleCalendarTool: Tool, Sendable {
-    public let name = "google_calendar"
+    public let name = "google_calendar_tool"
     public let description = """
     Manage Google Calendar events. Can create, read, update, and delete calendar events.
     Requires Google Calendar API access token.
@@ -53,20 +53,16 @@ public struct GoogleCalendarTool: Tool, Sendable {
                 ),
                 "endTime": ParameterProperty(
                     type: "string",
-                    description: "End time in ISO 8601 format"
+                    description: "End time in ISO 8601 format (e.g., '2026-02-15T14:00:00Z' or '2026-02-15T14:00:00+01:00')"
                 ),
                 "timeZone": ParameterProperty(
                     type: "string",
                     description: "Time zone (e.g., 'America/New_York', 'Europe/Zagreb', default: 'UTC')"
                 ),
-//                "attendees": ParameterProperty(
-//                    type: "array",
-//                    description: "Array of attendee email addresses"
-////                    items: ParameterProperty(
-////                        type: "string",
-////                        description: "Email address of an attendee"
-////                    )
-//                ),
+                "attendees": ParameterProperty(
+                    type: "array",
+                    description: "Array of attendee email addresses"
+                ),
                 "addMeetLink": ParameterProperty(
                     type: "boolean",
                     description: "Add Google Meet link (for create action)"

@@ -9,7 +9,7 @@ import Foundation
 
 /// A tool for parsing, validating, and extracting data from JSON
 public struct JSONParserTool: Tool {
-    public let name = "json_parser"
+    public let name = "json_parser_tool"
     public let description = "Parse JSON strings, extract values by key path, validate JSON structure, or pretty-print JSON"
     
     public var parameters: ToolParameters {

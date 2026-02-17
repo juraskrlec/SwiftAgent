@@ -10,18 +10,10 @@ import Foundation
 /// Protocol that all LLM providers must implement
 public protocol LLMProvider: Sendable {
     /// Generate a response from the LLM
-    func generate(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> LLMResponse
+    func generate(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> LLMResponse
     
     /// Stream a response from the LLM
-    func stream(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> AsyncThrowingStream<LLMChunk, Error>
+    func stream(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> AsyncThrowingStream<LLMChunk, Error>
 }
 
 /// Options for generation
@@ -31,12 +23,7 @@ public struct GenerationOptions: Sendable {
     public let topP: Double?
     public let stopSequences: [String]?
     
-    public init(
-        maxTokens: Int? = nil,
-        temperature: Double? = nil,
-        topP: Double? = nil,
-        stopSequences: [String]? = nil
-    ) {
+    public init(maxTokens: Int? = nil, temperature: Double? = nil, topP: Double? = nil, stopSequences: [String]? = nil) {
         self.maxTokens = maxTokens
         self.temperature = temperature
         self.topP = topP

@@ -76,9 +76,7 @@ final class AppleIntelligenceTests: XCTestCase {
     func testAppleIntelligenceWithDateTimeTool() async throws {
         let provider = try await AppleIntelligenceProvider()
         
-        let messages = [
-            Message.user("What day will it be 30 days from now?")
-        ]
+        let messages = [Message.user("What day will it be 30 days from now?")]
         
         let response = try await provider.generate(
             messages: messages,
@@ -93,9 +91,7 @@ final class AppleIntelligenceTests: XCTestCase {
     func testAppleIntelligenceCurrentDate() async throws {
         let provider = try await AppleIntelligenceProvider()
         
-        let messages = [
-            Message.user("What is today's date?")
-        ]
+        let messages = [Message.user("What is today's date?")]
         
         let response = try await provider.generate(
             messages: messages,

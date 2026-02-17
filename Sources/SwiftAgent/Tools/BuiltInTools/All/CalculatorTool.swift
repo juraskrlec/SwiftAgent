@@ -9,8 +9,8 @@ import Foundation
 
 /// Performs mathematical calculations
 struct CalculatorTool: Tool {
-    let name = "calculator"
-    let description = "Perform mathematical calculations. Supports basic math, algebra, and advanced functions."
+    public let name = "calculator_tool"
+    public let description = "Perform mathematical calculations. Supports basic math, algebra, and advanced functions."
     
     var parameters: ToolParameters {
         ToolParameters(

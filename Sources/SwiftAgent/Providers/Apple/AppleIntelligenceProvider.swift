@@ -17,7 +17,11 @@ public actor AppleIntelligenceProvider: LLMProvider {
     private let instructions: Instructions?
     private let maxContextTokens: Int
     
-    public init(instructions: String? = nil, maxContextTokens: Int = 3500) async throws {
+    /// Maximum context window for Apple Intelligence is 4096
+    /// Set maxContextTokens and make buffer for reponse
+    ///
+    /// See: https://developer.apple.com/documentation/technotes/tn3193-managing-the-on-device-foundation-model-s-context-window
+    public init(instructions: String? = nil, maxContextTokens: Int = 2000) async throws {
         if let instructions = instructions {
             self.instructions = Instructions { instructions }
         } else {
@@ -26,25 +30,23 @@ public actor AppleIntelligenceProvider: LLMProvider {
         self.maxContextTokens = maxContextTokens
     }
     
-    public func generate(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> LLMResponse {
+    public func generate(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> LLMResponse {
         
         let trimmedMessages = trimMessages(messages)
         
         // Build prompt from messages
         let prompt = buildPrompt(from: trimmedMessages)
         
-        // Create session (tools will be handled by the agent layer)
-        let session = createSession(with: nil)
+        let nativeTools: [any FMTool]? = tools.flatMap { mapToFMTool($0) }
         
+        // Create session (tools will be handled by the agent layer)
+        let session = createSession(with: nativeTools)
+                
         // Prewarm for better performance
         session.prewarm()
         
         // Generate response
-        let response = try await session.respond(to: prompt)
+        let response = try await session.respond(to: prompt, options: .init(maximumResponseTokens: options.maxTokens))
         
         // Return response
         return LLMResponse(
@@ -58,14 +60,17 @@ public actor AppleIntelligenceProvider: LLMProvider {
     
     public func stream(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> AsyncThrowingStream<LLMChunk, Error> {
         let prompt = buildPrompt(from: messages)
-        let session = createSession(with: nil)
+        
+        let nativeTools: [any FMTool]? = tools.flatMap { mapToFMTool($0) }
+        
+        let session = createSession(with: nativeTools)
         
         session.prewarm()
         
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    for try await chunk in session.streamResponse(to: prompt) {
+                    for try await chunk in session.streamResponse(to: prompt, options: .init(maximumResponseTokens: options.maxTokens)) {
                         continuation.yield(LLMChunk(type: .content(chunk.content)))
                     }
                     continuation.yield(LLMChunk(type: .done(.endTurn)))
@@ -78,6 +83,10 @@ public actor AppleIntelligenceProvider: LLMProvider {
     }
     
     // MARK: - Context Management
+    
+    private func mapToFMTool(_ tools: [Tool]?) -> [any FMTool]? {
+        return tools.map { FoundationModelToolFactory.wrap($0) }
+    }
     
     private func trimMessages(_ messages: [Message]) -> [Message] {
         // Estimate tokens (rough approximation: 1 token ≈ 4 characters)
@@ -112,7 +121,7 @@ public actor AppleIntelligenceProvider: LLMProvider {
     
     // MARK: - Private Helpers
     
-    private func createSession(with tools: [any ToolProtocol]?) -> LanguageModelSession {
+    private func createSession(with tools: [any FMTool]?) -> LanguageModelSession {
         if let tools = tools, !tools.isEmpty, let instructions = instructions {
             return LanguageModelSession(
                 tools: tools, instructions: instructions
@@ -146,127 +155,12 @@ public actor AppleIntelligenceProvider: LLMProvider {
     }
 }
 
-// MARK: - Agent Extension for Tool Support
-
-@available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)
-extension AppleIntelligenceProvider {
-    /// Create a provider with native Foundation Models tools
-    /// This is for advanced users who want to use Foundation Models tools directly
-    public static func withNativeTools(
-        instructions: String? = nil,
-        nativeTools: [any ToolProtocol]
-    ) async throws -> AppleIntelligenceProviderWithTools {
-        return try await AppleIntelligenceProviderWithTools(
-            instructions: instructions,
-            nativeTools: nativeTools
-        )
-    }
-}
-
-/// Provider that supports native Foundation Models tools
-@available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)
-public actor AppleIntelligenceProviderWithTools: LLMProvider {
-    private let instructions: Instructions?
-    private let nativeTools: [any ToolProtocol]
-    
-    init(instructions: String?, nativeTools: [any ToolProtocol]) async throws {
-        if let instructions = instructions {
-            self.instructions = Instructions { instructions }
-        } else {
-            self.instructions = nil
-        }
-        self.nativeTools = nativeTools
-    }
-    
-    public func generate(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> LLMResponse {
-        let prompt = buildPrompt(from: messages)
-        
-        // Create session with native tools
-        let session: LanguageModelSession
-        if let instructions = instructions {
-            session = LanguageModelSession(
-                tools: nativeTools, instructions: instructions
-            )
-        } else {
-            session = LanguageModelSession(tools: nativeTools)
-        }
-        
-        session.prewarm()
-        
-        let response = try await session.respond(to: prompt)
-        
-        return LLMResponse(
-            id: UUID().uuidString,
-            content: response.content,
-            toolCalls: nil,
-            stopReason: .endTurn,
-            usage: nil
-        )
-    }
-    
-    public func stream(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
-        let prompt = buildPrompt(from: messages)
-        
-        let session: LanguageModelSession
-        if let instructions = instructions {
-            session = LanguageModelSession(
-                tools: nativeTools, instructions: instructions
-            )
-        } else {
-            session = LanguageModelSession(tools: nativeTools)
-        }
-        
-        session.prewarm()
-        
-        return AsyncThrowingStream { continuation in
-            Task {
-                do {
-                    for try await chunk in session.streamResponse(to: prompt) {
-                        continuation.yield(LLMChunk(type: .content(chunk.content)))
-                    }
-                    continuation.yield(LLMChunk(type: .done(.endTurn)))
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
-                }
-            }
-        }
-    }
-    
-    private func buildPrompt(from messages: [Message]) -> Prompt {
-        var promptText = ""
-        
-        for message in messages {
-            switch message.role {
-            case .system:
-                promptText += "System: \(message.content)\n\n"
-            case .user:
-                promptText += "User: \(message.content)\n\n"
-            case .assistant:
-                promptText += "Assistant: \(message.content)\n\n"
-            case .tool:
-                promptText += "Tool Result: \(message.content)\n\n"
-            }
-        }
-        
-        return Prompt { promptText }
-    }
-}
-
 #else
 
 // Fallback for platforms that don't support Foundation Models
 public actor AppleIntelligenceProvider: LLMProvider {
     public init(instructions: String? = nil) async throws {
-        throw LLMError.apiError("Apple Intelligence (Foundation Models) is not available on this platform. Requires iOS 18.2+, macOS 15.2+")
+        throw LLMError.apiError("Apple Intelligence (Foundation Models) is not available on this platform. Requires iOS 26.0+, macOS 26.0+")
     }
     
     public func generate(

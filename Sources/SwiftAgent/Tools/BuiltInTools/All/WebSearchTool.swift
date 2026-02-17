@@ -9,7 +9,7 @@ import Foundation
 
 /// A tool for searching the web
 public struct WebSearchTool: Tool, Sendable {
-    public let name = "web_search"
+    public let name = "web_search_tool"
     public let description = "Search the web for information using DuckDuckGo. Returns search results with titles, snippets, and URLs."
     
     public var parameters: ToolParameters {
