@@ -15,10 +15,11 @@ struct ContinuousLearner {
         print("Continuous Learning Agent")
         print("This agent learns from conversations and improves over time")
         
-        guard let openAIKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] else {
-            print("Please set API keys")
-            return
-        }
+        let openAIKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? {
+            print("\nPlease set OPENAI_API_KEY: ", terminator: "")
+            fflush(stdout)
+            return readLine() ?? ""
+        }()
         
         // Setup RAG
         let embeddingProvider = OpenAIEmbeddingProvider(apiKey: openAIKey)
@@ -76,7 +77,7 @@ actor LearningAgent {
         self.key = key
         self.vectorStore = vectorStore
         
-        let provider = OpenAIProvider(apiKey: key, model: .gpt51Mini)
+        let provider = OpenAIProvider(apiKey: key, model: .gpt5Mini)
         
         // Agent that has conversations
         self.conversationAgent = Agent(

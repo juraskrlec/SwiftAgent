@@ -16,11 +16,9 @@ public struct GoogleCalendarTool: Tool, Sendable {
     """
     
     private let accessToken: String
-    private let debug: Bool
     
-    public init(accessToken: String, debug: Bool = false) {
+    public init(accessToken: String) {
         self.accessToken = accessToken
-        self.debug = debug
     }
     
     public var parameters: ToolParameters {
@@ -60,8 +58,12 @@ public struct GoogleCalendarTool: Tool, Sendable {
                     description: "Time zone (e.g., 'America/New_York', 'Europe/Zagreb', default: 'UTC')"
                 ),
                 "attendees": ParameterProperty(
-                    type: "array",
-                    description: "Array of attendee email addresses"
+                    type: "array", // Using uppercase for strictness
+                    description: "Array of attendee email addresses",
+                    items: ParameterProperty(
+                        type: "string",
+                        description: "Individual attendee email address"
+                    )
                 ),
                 "addMeetLink": ParameterProperty(
                     type: "boolean",
@@ -93,16 +95,12 @@ public struct GoogleCalendarTool: Tool, Sendable {
     }
     
     public func execute(arguments: [String: Any]) async throws -> String {
-        if debug {
-            print("\n[DEBUG] GoogleCalendarTool called with arguments:")
-            print(arguments)
-        }
         
         guard let action = arguments["action"] as? String else {
             throw ToolError.invalidArguments("Missing 'action' parameter")
         }
         
-        let client = GoogleCalendarClient(accessToken: accessToken, debug: debug)
+        let client = GoogleCalendarClient(accessToken: accessToken)
         
         switch action {
         case "create":
@@ -138,14 +136,7 @@ public struct GoogleCalendarTool: Tool, Sendable {
         guard let endTimeStr = arguments["endTime"] as? String else {
             throw ToolError.invalidArguments("Missing 'endTime' - use ISO 8601 format like '2026-02-15T15:00:00Z'")
         }
-        
-        if debug {
-            print("[DEBUG] Creating event:")
-            print("  Summary: \(summary)")
-            print("  Start: \(startTimeStr)")
-            print("  End: \(endTimeStr)")
-        }
-        
+
         let startTime = try parseDate(startTimeStr)
         let endTime = try parseDate(endTimeStr)
         
@@ -168,19 +159,19 @@ public struct GoogleCalendarTool: Tool, Sendable {
             addMeetLink: addMeetLink
         )
         
-        var response = "✅ Event '\(summary)' created successfully\n"
-        response += "📅 When: \(formatDate(startTime)) - \(formatDate(endTime))\n"
+        var response = "Event '\(summary)' created successfully\n"
+        response += "When: \(formatDate(startTime)) - \(formatDate(endTime))\n"
         
         if let location = location {
-            response += "📍 Where: \(location)\n"
+            response += "Where: \(location)\n"
         }
         
         if let htmlLink = event.htmlLink {
-            response += "🔗 Link: \(htmlLink)\n"
+            response += "Link: \(htmlLink)\n"
         }
         
         if let eventId = event.id {
-            response += "🆔 Event ID: \(eventId)\n"
+            response += "Event ID: \(eventId)\n"
         }
         
         return response
@@ -215,21 +206,21 @@ public struct GoogleCalendarTool: Tool, Sendable {
             return "No upcoming events found"
         }
         
-        var response = "📅 Upcoming Events (\(events.count)):\n\n"
+        var response = "Upcoming Events (\(events.count)):\n\n"
         
         for (index, event) in events.enumerated() {
             response += "\(index + 1). **\(event.summary ?? "Untitled")**\n"
             
             if let startStr = event.start.dateTime, let start = try? parseDate(startStr) {
-                response += "   ⏰ \(formatDate(start))\n"
+                response += "   \(formatDate(start))\n"
             }
             
             if let location = event.location {
-                response += "   📍 \(location)\n"
+                response += "   \(location)\n"
             }
             
             if let eventId = event.id {
-                response += "   🆔 \(eventId)\n"
+                response += "   \(eventId)\n"
             }
             
             if index < events.count - 1 {
@@ -249,24 +240,24 @@ public struct GoogleCalendarTool: Tool, Sendable {
         
         let event = try await client.getEvent(calendarId: calendarId, eventId: eventId)
         
-        var response = "📅 Event Details\n\n"
+        var response = "Event Details\n\n"
         response += "**\(event.summary ?? "Untitled")**\n\n"
         
         if let description = event.description {
-            response += "📝 \(description)\n\n"
+            response += "\(description)\n\n"
         }
         
         if let startStr = event.start.dateTime, let start = try? parseDate(startStr),
            let endStr = event.end.dateTime, let end = try? parseDate(endStr) {
-            response += "⏰ \(formatDate(start)) - \(formatDate(end))\n"
+            response += "\(formatDate(start)) - \(formatDate(end))\n"
         }
         
         if let location = event.location {
-            response += "📍 \(location)\n"
+            response += "\(location)\n"
         }
         
         if let attendees = event.attendees, !attendees.isEmpty {
-            response += "\n👥 Attendees:\n"
+            response += "\nAttendees:\n"
             for attendee in attendees {
                 response += "   - \(attendee.email)"
                 if let status = attendee.responseStatus {
@@ -319,7 +310,7 @@ public struct GoogleCalendarTool: Tool, Sendable {
             timeZone: timeZone
         )
         
-        return "✅ Event updated successfully\n🔗 \(event.htmlLink ?? "")"
+        return "Event updated successfully\n🔗 \(event.htmlLink ?? "")"
     }
     
     private func deleteEvent(client: GoogleCalendarClient, arguments: [String: Any]) async throws -> String {
@@ -331,7 +322,7 @@ public struct GoogleCalendarTool: Tool, Sendable {
         
         try await client.deleteEvent(calendarId: calendarId, eventId: eventId)
         
-        return "✅ Event deleted successfully (ID: \(eventId))"
+        return "Event deleted successfully (ID: \(eventId))"
     }
     
     private func searchEvents(client: GoogleCalendarClient, arguments: [String: Any]) async throws -> String {
@@ -352,17 +343,17 @@ public struct GoogleCalendarTool: Tool, Sendable {
             return "No events found matching '\(query)'"
         }
         
-        var response = "🔍 Found \(events.count) event(s) matching '\(query)':\n\n"
+        var response = "Found \(events.count) event(s) matching '\(query)':\n\n"
         
         for (index, event) in events.enumerated() {
             response += "\(index + 1). **\(event.summary ?? "Untitled")**\n"
             
             if let startStr = event.start.dateTime, let start = try? parseDate(startStr) {
-                response += "   ⏰ \(formatDate(start))\n"
+                response += "   \(formatDate(start))\n"
             }
             
             if let eventId = event.id {
-                response += "   🆔 \(eventId)\n"
+                response += "   \(eventId)\n"
             }
             
             if index < events.count - 1 {
@@ -380,18 +371,18 @@ public struct GoogleCalendarTool: Tool, Sendable {
             return "No calendars found"
         }
         
-        var response = "📚 Your Calendars (\(calendars.count)):\n\n"
+        var response = "Your Calendars (\(calendars.count)):\n\n"
         
         for (index, calendar) in calendars.enumerated() {
             response += "\(index + 1). **\(calendar.summary)**\n"
-            response += "   🆔 ID: \(calendar.id)\n"
+            response += "   ID: \(calendar.id)\n"
             
             if let description = calendar.description {
-                response += "   📝 \(description)\n"
+                response += "   \(description)\n"
             }
             
             if calendar.primary == true {
-                response += "   ⭐ Primary calendar\n"
+                response += "   Primary calendar\n"
             }
             
             if index < calendars.count - 1 {
@@ -412,14 +403,11 @@ public struct GoogleCalendarTool: Tool, Sendable {
             ([.withFullDate, .withTime, .withColonSeparatorInTime], "ISO8601 without timezone"),
         ]
         
-        for (options, formatName) in formatters {
+        for (options, _) in formatters {
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = options
             
             if let date = formatter.date(from: dateString) {
-                if debug {
-                    print("[DEBUG] Parsed '\(dateString)' using \(formatName) -> \(date)")
-                }
                 return date
             }
         }
@@ -447,9 +435,6 @@ public struct GoogleCalendarTool: Tool, Sendable {
         for format in formats {
             formatter.dateFormat = format
             if let date = formatter.date(from: dateString) {
-                if debug {
-                    print("[DEBUG] Parsed '\(dateString)' using manual format '\(format)' -> \(date)")
-                }
                 return date
             }
         }

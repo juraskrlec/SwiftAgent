@@ -146,15 +146,24 @@ struct AnthropicTool: Encodable {
         let required: [String]
     }
     
-    struct PropertySchema: Encodable {
+    final class PropertySchema: Encodable, Sendable {
         let type: String
         let description: String
         let enumValues: [String]?
+        let items: PropertySchema?
+        
+        init(type: String, description: String, enumValues: [String]?, items: PropertySchema?) {
+            self.type = type
+            self.description = description
+            self.enumValues = enumValues
+            self.items = items
+        }
         
         enum CodingKeys: String, CodingKey {
             case type
             case description
             case enumValues = "enum"
+            case items
         }
     }
 }

@@ -14,10 +14,11 @@ struct ResearchAssistant {
         print("Research Assistant with Multi-Agent Graph")
         
         // Setup
-        guard let openAIKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] else {
-            print("Please set OPENAI_API_KEY")
-            return
-        }
+        let openAIKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? {
+            print("\nPlease set OPENAI_API_KEY: ", terminator: "")
+            fflush(stdout)
+            return readLine() ?? ""
+        }()
         
         // Create RAG system for storing research
         let embeddingProvider = OpenAIEmbeddingProvider(apiKey: openAIKey)
@@ -54,7 +55,7 @@ struct ResearchAssistant {
         
         let ragAgent = Agent(
             name: "QueryAgent",
-            provider: OpenAIProvider(apiKey: openAIKey, model: .gpt51Mini),
+            provider: OpenAIProvider(apiKey: openAIKey, model: .gpt5Mini),
             systemPrompt: "Answer questions based on the knowledge base. Always cite sources.",
             tools: [VectorSearchTool(vectorStore: vectorStore)],
             maxIterations: 3
@@ -91,7 +92,7 @@ actor ResearchGraph {
         self.key = key
         self.vectorStore = vectorStore
         
-        let provider = OpenAIProvider(apiKey: key, model: .gpt51Mini)
+        let provider = OpenAIProvider(apiKey: key, model: .gpt5Mini)
         
         // 1. Planner - Breaks down research into subtopics
         self.planner = Agent(

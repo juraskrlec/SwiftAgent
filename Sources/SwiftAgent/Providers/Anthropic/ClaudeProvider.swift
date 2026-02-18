@@ -44,11 +44,7 @@ public actor ClaudeProvider: LLMProvider {
         self.defaultMaxTokens = defaultMaxTokens
     }
     
-    public func generate(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> LLMResponse {
+    public func generate(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> LLMResponse {
         let request = try buildRequest(
             messages: messages,
             tools: tools,
@@ -60,11 +56,7 @@ public actor ClaudeProvider: LLMProvider {
         return try convertResponse(response)
     }
     
-    public func stream(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
+    public func stream(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> AsyncThrowingStream<LLMChunk, Error> {
         let request = try buildRequest(
             messages: messages,
             tools: tools,
@@ -131,12 +123,7 @@ public actor ClaudeProvider: LLMProvider {
     
     // MARK: - Private Helpers
     
-    private func buildRequest(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions,
-        stream: Bool
-    ) throws -> AnthropicRequest {
+    private func buildRequest(messages: [Message], tools: [Tool]?, options: GenerationOptions,stream: Bool) throws -> AnthropicRequest {
         // Extract system message
         let systemMessage = messages.first { $0.role == .system }?.content
         let conversationMessages = messages.filter { $0.role != .system }
@@ -151,7 +138,7 @@ public actor ClaudeProvider: LLMProvider {
             convertTool(tool)
         }
         
-        return AnthropicRequest(
+        let request = AnthropicRequest(
             model: model.rawValue,
             messages: anthropicMessages,
             maxTokens: options.maxTokens ?? defaultMaxTokens,
@@ -162,6 +149,14 @@ public actor ClaudeProvider: LLMProvider {
             tools: anthropicTools,
             stream: stream
         )
+        
+//        if let data = try? JSONEncoder().encode(request),
+//           let json = String(data: data, encoding: .utf8) {
+//            print("\n[DEBUG CLAUDE] Request:")
+//            print(json)
+//        }
+        
+        return request
     }
     
     private func convertMessage(_ message: Message) throws -> AnthropicMessage {
@@ -225,12 +220,44 @@ public actor ClaudeProvider: LLMProvider {
         return AnthropicMessage(role: role, content: .text(message.content))
     }
     
+//    private func convertTool(_ tool: Tool) -> AnthropicTool {
+//        let properties = tool.parameters.properties.mapValues { param in
+//            AnthropicTool.PropertySchema(
+//                type: param.type,
+//                description: param.description,
+//                enumValues: param.enumValues
+//            )
+//        }
+//        
+//        return AnthropicTool(
+//            name: tool.name,
+//            description: tool.description,
+//            inputSchema: AnthropicTool.InputSchema(
+//                type: "object",
+//                properties: properties,
+//                required: tool.parameters.required
+//            )
+//        )
+//    }
+    
     private func convertTool(_ tool: Tool) -> AnthropicTool {
-        let properties = tool.parameters.properties.mapValues { param in
-            AnthropicTool.PropertySchema(
+        let properties = tool.parameters.properties.mapValues { param -> AnthropicTool.PropertySchema in
+            
+            var itemsSchema: AnthropicTool.PropertySchema? = nil
+            if param.type == "array", let items = param.items {
+                itemsSchema = AnthropicTool.PropertySchema(
+                    type: items.type,
+                    description: items.description,
+                    enumValues: items.enumValues,
+                    items: nil
+                )
+            }
+            
+            return AnthropicTool.PropertySchema(
                 type: param.type,
                 description: param.description,
-                enumValues: param.enumValues
+                enumValues: param.enumValues,
+                items: itemsSchema
             )
         }
         
@@ -246,6 +273,19 @@ public actor ClaudeProvider: LLMProvider {
     }
     
     private func convertResponse(_ response: AnthropicResponse) throws -> LLMResponse {
+        
+//        print("\n[DEBUG CLAUDE] Response:")
+//        print("  Stop reason: \(response.stopReason ?? "nil")")
+//        print("  Content blocks: \(response.content.count)")
+//        for (i, block) in response.content.enumerated() {
+//            print("    Block \(i): type=\(block.type)")
+//            if block.type == "tool_use" {
+//                print("      id: \(block.id ?? "nil")")
+//                print("      name: \(block.name ?? "nil")")
+//                print("      input keys: \(block.input?.keys.joined(separator: ", ") ?? "none")")
+//            }
+//        }
+        
         var textContent = ""
         var toolCalls: [ToolCall] = []
         

@@ -90,7 +90,8 @@ actor PersonalAssistantGraph {
         self.geminiKey = geminiKey
         self.googleToken = googleToken
         
-        let provider = OpenAIProvider(apiKey: geminiKey, model: .gpt51Mini)
+//        let provider = OpenAIProvider(apiKey: geminiKey, model: .gpt5Mini)
+        let provider = ClaudeProvider(apiKey: geminiKey, model: .sonnet)
         
         // Get current date/time for context
         let now = Date()
@@ -132,12 +133,9 @@ actor PersonalAssistantGraph {
             4. Confirm with the user
             
             Be conversational and friendly!
+            Always use tools before answering.
             """,
-            tools: [
-                GoogleCalendarTool(accessToken: googleToken, debug: true),
-                DateTimeTool(),
-                WebSearchTool()
-            ],
+            tools: [DateTimeTool(), GoogleCalendarTool(accessToken: googleToken)],
             maxIterations: 15
         )
     }

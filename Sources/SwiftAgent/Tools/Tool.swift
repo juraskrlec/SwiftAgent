@@ -38,17 +38,20 @@ public final class ParameterProperty: Codable, Sendable {
     public let type: String
     public let description: String
     public let enumValues: [String]?
+    public let items: ParameterProperty?
     
     enum CodingKeys: String, CodingKey {
         case type
         case description
         case enumValues = "enum"
+        case items
     }
     
-    public init(type: String, description: String, enumValues: [String]? = nil) {
+    public init(type: String, description: String, enumValues: [String]? = nil, items: ParameterProperty? = nil) {
         self.type = type
         self.description = description
         self.enumValues = enumValues
+        self.items = items
     }
 }
 

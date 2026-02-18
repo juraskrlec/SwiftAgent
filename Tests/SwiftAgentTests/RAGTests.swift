@@ -82,7 +82,7 @@ final class RAGTests: XCTestCase {
         
         try await vectorStore.add(documents: documents)
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt51Mini)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5Mini)
         
         let agent = Agent(
             name: "TestRAG",

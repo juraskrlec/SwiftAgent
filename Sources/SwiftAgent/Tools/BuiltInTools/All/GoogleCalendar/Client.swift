@@ -163,13 +163,23 @@ public actor GoogleCalendarClient {
         location: String? = nil,
         startTime: Date? = nil,
         endTime: Date? = nil,
-        timeZone: String = "UTC"
+        timeZone: String = "UTC",
+        attendees: [String]? = nil
     ) async throws -> GoogleCalendarEvent {
         // First get the existing event
         let existingEvent = try await getEvent(calendarId: calendarId, eventId: eventId)
         
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
+        
+        let finalAttendees: [CreateEventRequest.Attendee]?
+        if let newAttendees = attendees {
+            // If the AI provided new ones, use those
+            finalAttendees = newAttendees.map { CreateEventRequest.Attendee(email: $0, displayName: nil, optional: false) }
+        } else {
+            // Otherwise, keep the ones already on the calendar
+            finalAttendees = existingEvent.attendees?.map { CreateEventRequest.Attendee(email: $0.email, displayName: $0.displayName, optional: $0.optional) }
+        }
         
         // Build update request with existing values as defaults
         let eventRequest = CreateEventRequest(
@@ -184,7 +194,7 @@ public actor GoogleCalendarClient {
                 dateTime: endTime.map { formatter.string(from: $0) } ?? existingEvent.end.dateTime ?? "",
                 timeZone: timeZone
             ),
-            attendees: nil,
+            attendees: finalAttendees,
             conferenceData: nil
         )
         
@@ -220,29 +230,12 @@ public actor GoogleCalendarClient {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             request.httpBody = try encoder.encode(body)
-            
-            if debug {
-                print("[DEBUG] Request URL: \(url)")
-                print("[DEBUG] Request Method: \(method)")
-                print("[DEBUG] Request Body:")
-                if let bodyString = String(data: request.httpBody!, encoding: .utf8) {
-                    print(bodyString)
-                }
-            }
         }
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw GoogleCalendarError.invalidResponse
-        }
-        
-        if debug {
-            print("[DEBUG] Response Status: \(httpResponse.statusCode)")
-            print("[DEBUG] Response Body:")
-            if let responseString = String(data: data, encoding: .utf8) {
-                print(responseString)
-            }
         }
         
         switch httpResponse.statusCode {

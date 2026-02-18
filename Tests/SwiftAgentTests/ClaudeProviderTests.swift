@@ -172,4 +172,88 @@ final class ClaudeProviderTests: XCTestCase {
             XCTAssertFalse(response.content.isEmpty)
         }
     }
+    
+    func testClaudeToolCalling() async throws {
+        guard let apiKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"],
+              let token = ProcessInfo.processInfo.environment["GOOGLE_ACCESS_TOKEN"] else {
+            throw XCTSkip("Missing keys")
+        }
+        
+        let provider = ClaudeProvider(apiKey: apiKey, model: .sonnet)
+        
+        let response = try await provider.generate(
+            messages: [
+                .system("You have a google_calendar_tool. When asked about calendars, USE IT. Don't explain - just call it with action='list_calendars'."),
+                .user("Use the google_calendar_tool with action list_calendars")
+            ],
+            tools: [GoogleCalendarTool(accessToken: token)],
+            options: .default
+        )
+        
+        print("Content: \(response.content)")
+        print("Tool calls: \(response.toolCalls?.count ?? 0)")
+        
+        XCTAssertNotNil(response.toolCalls, "Should call tool")
+        XCTAssertEqual(response.toolCalls?.first?.name, "google_calendar_tool")
+    }
+    
+    func testClaudeNonStreaming() async throws {
+        
+        guard let apiKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"],
+              let token = ProcessInfo.processInfo.environment["GOOGLE_ACCESS_TOKEN"] else {
+            throw XCTSkip("Missing keys")
+        }
+        
+        let provider = ClaudeProvider(apiKey: apiKey, model: .sonnet)
+        
+        let response = try await provider.generate(
+            messages: [
+                .system("You must use the google_calendar_tool when asked about schedules."),
+                .user("What's on my schedule tomorrow?")
+            ],
+            tools: [GoogleCalendarTool(accessToken: token)],
+            options: .default
+        )
+        
+        print("Content: \(response.content)")
+        print("Tool calls: \(response.toolCalls?.count ?? 0)")
+        
+        if let toolCalls = response.toolCalls {
+            for tc in toolCalls {
+                print("  - \(tc.name)")
+                print("    args: \(tc.arguments)")
+            }
+        }
+        
+        XCTAssertNotNil(response.toolCalls)
+    }
+    
+    func testClaudeAgentWithCalendar() async throws {
+        guard let apiKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"],
+              let token = ProcessInfo.processInfo.environment["GOOGLE_ACCESS_TOKEN"] else {
+            throw XCTSkip("Missing keys")
+        }
+        
+        let provider = ClaudeProvider(apiKey: apiKey, model: .sonnet)
+        
+        let agent = Agent(
+            name: "CalendarAgent",
+            provider: provider,
+            systemPrompt: "You are a calendar assistant. Use google_calendar_tool to check schedules.",
+            tools: [DateTimeTool(), GoogleCalendarTool(accessToken: token)],
+            maxIterations: 10
+        )
+        
+        let result = try await agent.run(task: "What's on my schedule tomorrow?")
+        
+        print("\nFinal answer:")
+        print(result.output)
+        print("\nIterations: \(result.state.iterations)")
+        print("Messages: \(result.state.messages.count)")
+        
+        XCTAssertTrue(result.success)
+        XCTAssertGreaterThan(result.state.iterations, 0, "Should have used tools")
+    }
 }
+
+

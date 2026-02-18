@@ -37,7 +37,7 @@ final class OpenAIProviderTests: XCTestCase {
             throw XCTSkip("OPENAI_API_KEY not set")
         }
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt51Mini)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5Mini)
         
         let messages = [
             Message.user("What is 2+2? Answer in one short sentence.")
@@ -58,7 +58,7 @@ final class OpenAIProviderTests: XCTestCase {
             throw XCTSkip("OPENAI_API_KEY not set")
         }
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt51Mini)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5Mini)
         
         let messages = [
             Message.user("What's the date 30 days from now?")
@@ -81,7 +81,7 @@ final class OpenAIProviderTests: XCTestCase {
             throw XCTSkip("OPENAI_API_KEY not set")
         }
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt51Mini)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5Mini)
         
         let agent = Agent(
             name: "OpenAIAgent",
@@ -105,7 +105,7 @@ final class OpenAIProviderTests: XCTestCase {
             throw XCTSkip("OPENAI_API_KEY not set")
         }
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt51Mini)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5Mini)
         
         let messages = [
             Message.user("Count to 3. Just the numbers.")
@@ -132,5 +132,32 @@ final class OpenAIProviderTests: XCTestCase {
         }
         
         XCTAssertFalse(fullText.isEmpty)
+    }
+    
+    func testOpenAIAgentWithCalendar() async throws {
+        guard let apiKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"],
+              let token = ProcessInfo.processInfo.environment["GOOGLE_ACCESS_TOKEN"] else {
+            throw XCTSkip("Missing keys")
+        }
+        
+        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5)
+        
+        let agent = Agent(
+            name: "CalendarAgent",
+            provider: provider,
+            systemPrompt: "You are a calendar assistant. Use google_calendar_tool to check schedules.",
+            tools: [DateTimeTool(), GoogleCalendarTool(accessToken: token)],
+            maxIterations: 10
+        )
+        
+        let result = try await agent.run(task: "What's on my schedule tomorrow?")
+        
+        print("\nFinal answer:")
+        print(result.output)
+        print("\nIterations: \(result.state.iterations)")
+        print("Messages: \(result.state.messages.count)")
+        
+        XCTAssertTrue(result.success)
+        XCTAssertGreaterThan(result.state.iterations, 0, "Should have used tools")
     }
 }

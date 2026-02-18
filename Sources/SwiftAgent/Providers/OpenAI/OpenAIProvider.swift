@@ -8,15 +8,11 @@
 import Foundation
 
 public enum OpenAIModel: String, Sendable {
+    case gpt52Pro = "gpt-5.2-pro"
     case gpt52 = "gpt-5.2"
-    case gpt52Mini = "gpt-5.2-mini"
-    case gpt52Nano = "gpt-5.2-nano"
-    case gpt51 = "gpt-5.1"
-    case gpt51Mini = "gpt-5-mini"
-    case gpt51Nano = "gpt-5-nano"
-    case gpt41 = "gpt-4.1"
-    case gpt41Mini = "gpt-4.1-mini"
-    case gpt41Nano = "gpt-4.1-nano"
+    case gpt5Mini = "gpt-5-mini"
+    case gpt5Nano = "gpt-5-nano"
+    case gpt5 = "gpt-5"
 }
 
 public actor OpenAIProvider: LLMProvider, Sendable {
@@ -214,7 +210,12 @@ public actor OpenAIProvider: LLMProvider, Sendable {
     
     // MARK: - Build Request
     
-    private func buildRequest(messages: [Message], tools: [Tool]?, options: GenerationOptions, stream: Bool) -> OpenAIRequest {
+    private func buildRequest(
+        messages: [Message],
+        tools: [Tool]?,
+        options: GenerationOptions,
+        stream: Bool
+    ) -> OpenAIRequest {
         // Convert messages
         let openAIMessages = messages.map { msg -> OpenAIMessage in
             switch msg.role {
@@ -275,13 +276,23 @@ public actor OpenAIProvider: LLMProvider, Sendable {
             }
         }
         
-        // Convert tools
         let openAITools: [OpenAITool]? = tools?.map { tool in
-            let properties = tool.parameters.properties.mapValues { param in
-                JSONSchema.Property(
+            let properties = tool.parameters.properties.mapValues { param -> JSONSchema.Property in
+                
+                let items: JSONSchema.Property? = param.items.map { itemParam in
+                    JSONSchema.Property(
+                        type: itemParam.type,
+                        description: itemParam.description,
+                        enumValues: itemParam.enumValues,
+                        items: nil  // Single level of nesting
+                    )
+                }
+                
+                return JSONSchema.Property(
                     type: param.type,
                     description: param.description,
-                    enumValues: param.enumValues
+                    enumValues: param.enumValues,
+                    items: items
                 )
             }
             
@@ -300,7 +311,7 @@ public actor OpenAIProvider: LLMProvider, Sendable {
             )
         }
         
-        return OpenAIRequest(
+        let request = OpenAIRequest(
             model: model.rawValue,
             messages: openAIMessages,
             maxCompletionTokens: options.maxTokens,
@@ -316,7 +327,124 @@ public actor OpenAIProvider: LLMProvider, Sendable {
             seed: nil,
             user: nil
         )
+//        
+//        let encoder = JSONEncoder()
+//            encoder.outputFormatting = .prettyPrinted
+//            if let data = try? encoder.encode(request),
+//               let json = String(data: data, encoding: .utf8) {
+//                print("\n[DEBUG OpenAI] Request JSON:")
+//                print(json)
+//            }
+        
+        return request
+        
+
     }
+    
+//    private func buildRequest(messages: [Message], tools: [Tool]?, options: GenerationOptions, stream: Bool) -> OpenAIRequest {
+//        // Convert messages
+//        let openAIMessages = messages.map { msg -> OpenAIMessage in
+//            switch msg.role {
+//            case .system:
+//                return OpenAIMessage(
+//                    role: .system,
+//                    content: .text(msg.content),
+//                    toolCalls: nil,
+//                    toolCallId: nil
+//                )
+//                
+//            case .user:
+//                return OpenAIMessage(
+//                    role: .user,
+//                    content: .text(msg.content),
+//                    toolCalls: nil,
+//                    toolCallId: nil
+//                )
+//                
+//            case .assistant:
+//                if let toolCalls = msg.toolCalls {
+//                    let openAIToolCalls = toolCalls.map { tc -> OpenAIToolCall in
+//                        let argsData = try? JSONEncoder().encode(tc.arguments)
+//                        let argsString = argsData.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+//                        
+//                        return OpenAIToolCall(
+//                            id: tc.id,
+//                            type: "function",
+//                            function: OpenAIFunctionCall(
+//                                name: tc.name,
+//                                arguments: argsString
+//                            )
+//                        )
+//                    }
+//                    
+//                    return OpenAIMessage(
+//                        role: .assistant,
+//                        content: msg.content.isEmpty ? nil : .text(msg.content),
+//                        toolCalls: openAIToolCalls,
+//                        toolCallId: nil
+//                    )
+//                } else {
+//                    return OpenAIMessage(
+//                        role: .assistant,
+//                        content: .text(msg.content),
+//                        toolCalls: nil,
+//                        toolCallId: nil
+//                    )
+//                }
+//                
+//            case .tool:
+//                return OpenAIMessage(
+//                    role: .tool,
+//                    content: .text(msg.content),
+//                    toolCalls: nil,
+//                    toolCallId: msg.toolCallId
+//                )
+//            }
+//        }
+//        
+//        // Convert tools
+//        let openAITools: [OpenAITool]? = tools?.map { tool in
+//            let properties = tool.parameters.properties.mapValues { param in
+//                JSONSchema.Property(
+//                    type: param.type,
+//                    description: param.description,
+//                    enumValues: param.enumValues,
+//                    items: nil
+//                )
+//            }
+//            
+//            return OpenAITool(
+//                type: .function,
+//                function: .init(
+//                    name: tool.name,
+//                    description: tool.description,
+//                    parameters: JSONSchema(
+//                        type: "object",
+//                        properties: properties,
+//                        required: tool.parameters.required,
+//                        additionalProperties: false
+//                    )
+//                )
+//            )
+//        }
+//        
+//        return OpenAIRequest(
+//            model: model.rawValue,
+//            messages: openAIMessages,
+//            maxCompletionTokens: options.maxTokens,
+//            temperature: options.temperature,
+//            topP: options.topP,
+//            stop: options.stopSequences,
+//            stream: stream ? true : nil,
+//            tools: openAITools,
+//            toolChoice: openAITools != nil ? .auto : nil,
+//            parallelToolCalls: nil,
+//            responseFormat: nil,
+//            n: nil,
+//            seed: nil,
+//            user: nil
+//        )
+//    }
     
     // MARK: - Parse Response
     
