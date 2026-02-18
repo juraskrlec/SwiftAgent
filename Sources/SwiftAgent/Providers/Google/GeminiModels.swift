@@ -23,11 +23,13 @@ struct GeminiRequest: Encodable {
         let text: String?
         let functionCall: FunctionCall?
         let functionResponse: FunctionResponse?
+        let thoughtSignature: String? // Gemini 3 Thought models
         
         enum CodingKeys: String, CodingKey {
             case text
             case functionCall
             case functionResponse
+            case thoughtSignature = "thought_signature"
         }
     }
     
@@ -47,6 +49,11 @@ struct GeminiRequest: Encodable {
         let topK: Int?
         let maxOutputTokens: Int?
         let stopSequences: [String]?
+        let thinkingConfig: ThinkingConfig?
+        
+        struct ThinkingConfig: Encodable {
+            let thinkingLevel: String
+        }
     }
     
     struct Tool: Encodable {
@@ -64,15 +71,24 @@ struct GeminiRequest: Encodable {
             let required: [String]
         }
         
-        struct PropertySchema: Encodable {
+        final class PropertySchema: Encodable, Sendable {
             let type: String
             let description: String
             let enumValues: [String]?
+            let items: PropertySchema?
             
             enum CodingKeys: String, CodingKey {
                 case type
                 case description
                 case enumValues = "enum"
+                case items
+            }
+            
+            init(type: String, description: String, enumValues: [String]? = nil, items: PropertySchema? = nil) {
+                self.type = type
+                self.description = description
+                self.enumValues = enumValues
+                self.items = items
             }
         }
     }
@@ -96,6 +112,13 @@ struct GeminiResponse: Decodable {
         struct Part: Decodable {
             let text: String?
             let functionCall: FunctionCall?
+            let thoughtSignature: String? // Gemini 3
+            
+            enum CodingKeys: String, CodingKey {
+                case text
+                case functionCall
+                case thoughtSignature = "thought_signature"
+            }
             
             struct FunctionCall: Decodable {
                 let name: String
@@ -129,6 +152,13 @@ struct GeminiStreamChunk: Decodable {
         struct Part: Decodable {
             let text: String?
             let functionCall: FunctionCall?
+            let thoughtSignature: String? // Gemini 3
+            
+            enum CodingKeys: String, CodingKey {
+                case text
+                case functionCall
+                case thoughtSignature = "thought_signature"
+            }
             
             struct FunctionCall: Decodable {
                 let name: String

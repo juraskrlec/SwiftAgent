@@ -20,42 +20,24 @@ public actor GeminiProvider: LLMProvider {
     private let api: GeminiAPI
     private let model: Model
     private let defaultMaxTokens: Int
+    private let defaultThinkingLevel: ThinkingLevel?
     
-    public init(
-        apiKey: String,
-        model: Model = .gemini25Flash,
-        defaultMaxTokens: Int = 8192
-    ) {
+    public init(apiKey: String, model: Model = .gemini25Flash, defaultMaxTokens: Int = 8192, thinkingLevel: ThinkingLevel? = nil) {
         self.api = GeminiAPI(apiKey: apiKey)
         self.model = model
         self.defaultMaxTokens = defaultMaxTokens
+        self.defaultThinkingLevel = thinkingLevel
     }
     
-    public func generate(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> LLMResponse {
-        let request = try buildRequest(
-            messages: messages,
-            tools: tools,
-            options: options
-        )
+    public func generate(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> LLMResponse {
+        let request = try buildRequest(messages: messages, tools: tools,options: options)
         
         let response = try await api.sendRequest(request, model: model.rawValue)
         return try convertResponse(response)
     }
     
-    public func stream(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) async throws -> AsyncThrowingStream<LLMChunk, Error> {
-        let request = try buildRequest(
-            messages: messages,
-            tools: tools,
-            options: options
-        )
+    public func stream(messages: [Message], tools: [Tool]?, options: GenerationOptions) async throws -> AsyncThrowingStream<LLMChunk, Error> {
+        let request = try buildRequest(messages: messages, tools: tools, options: options)
         
         let eventStream = try await api.streamRequest(request, model: model.rawValue)
         
@@ -116,11 +98,16 @@ public actor GeminiProvider: LLMProvider {
     
     // MARK: - Private Helpers
     
-    private func buildRequest(
-        messages: [Message],
-        tools: [Tool]?,
-        options: GenerationOptions
-    ) throws -> GeminiRequest {
+    private func supportsThinking() -> Bool {
+        switch model {
+        case .gemini3Flash, .gemini3Pro:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    private func buildRequest(messages: [Message], tools: [Tool]?, options: GenerationOptions) throws -> GeminiRequest {
         // Convert messages to Gemini format
         var contents: [GeminiRequest.Content] = []
         var currentRole = "user"
@@ -157,11 +144,11 @@ public actor GeminiProvider: LLMProvider {
                         functionResponse: GeminiRequest.FunctionResponse(
                             name: toolCallId,
                             response: ["result": AnyCodable(message.content)]
-                        )
+                        ),
+                        thoughtSignature: message.thoughtSignature
                     ))
                 }
             } else if let toolCalls = message.toolCalls {
-                // Tool calls
                 for toolCall in toolCalls {
                     currentParts.append(GeminiRequest.Part(
                         text: nil,
@@ -169,7 +156,8 @@ public actor GeminiProvider: LLMProvider {
                             name: toolCall.name,
                             args: toolCall.arguments
                         ),
-                        functionResponse: nil
+                        functionResponse: nil,
+                        thoughtSignature: nil
                     ))
                 }
             } else {
@@ -177,7 +165,8 @@ public actor GeminiProvider: LLMProvider {
                 currentParts.append(GeminiRequest.Part(
                     text: message.content,
                     functionCall: nil,
-                    functionResponse: nil
+                    functionResponse: nil,
+                    thoughtSignature: message.thoughtSignature
                 ))
             }
         }
@@ -191,11 +180,21 @@ public actor GeminiProvider: LLMProvider {
         var geminiTools: [GeminiRequest.Tool]?
         if let tools = tools, !tools.isEmpty {
             let functionDeclarations = tools.map { tool -> GeminiRequest.FunctionDeclaration in
-                let properties = tool.parameters.properties.mapValues { param in
-                    GeminiRequest.FunctionDeclaration.PropertySchema(
+                let properties = tool.parameters.properties.mapValues { param -> GeminiRequest.FunctionDeclaration.PropertySchema in
+                    let items: GeminiRequest.FunctionDeclaration.PropertySchema? = param.items.map { itemParam in
+                        GeminiRequest.FunctionDeclaration.PropertySchema(
+                            type: itemParam.type,
+                            description: itemParam.description,
+                            enumValues: itemParam.enumValues,
+                            items: nil
+                        )
+                    }
+                    
+                    return GeminiRequest.FunctionDeclaration.PropertySchema(
                         type: param.type,
                         description: param.description,
-                        enumValues: param.enumValues
+                        enumValues: param.enumValues,
+                        items: items
                     )
                 }
                 
@@ -209,9 +208,22 @@ public actor GeminiProvider: LLMProvider {
                     )
                 )
             }
-            
             geminiTools = [GeminiRequest.Tool(functionDeclarations: functionDeclarations)]
         }
+        
+        let thinkingConfig: GeminiRequest.GenerationConfig.ThinkingConfig? = {
+            // Priority: options > provider default > auto for Gemini 3
+            if let level = options.thinkingLevel {
+                return GeminiRequest.GenerationConfig.ThinkingConfig(thinkingLevel: level.rawValue)
+            } else if let level = defaultThinkingLevel {
+                return GeminiRequest.GenerationConfig.ThinkingConfig(thinkingLevel: level.rawValue)
+            } else if supportsThinking() {
+                // Default to minimal for Gemini 3 if not specified
+                return GeminiRequest.GenerationConfig.ThinkingConfig(thinkingLevel: ThinkingLevel.minimal.rawValue)
+            } else {
+                return nil
+            }
+        }()
         
         // Generation config
         let generationConfig = GeminiRequest.GenerationConfig(
@@ -219,7 +231,8 @@ public actor GeminiProvider: LLMProvider {
             topP: options.topP,
             topK: nil,
             maxOutputTokens: options.maxTokens ?? defaultMaxTokens,
-            stopSequences: options.stopSequences
+            stopSequences: options.stopSequences,
+            thinkingConfig: thinkingConfig
         )
         
         return GeminiRequest(
@@ -234,8 +247,20 @@ public actor GeminiProvider: LLMProvider {
             throw LLMError.invalidResponse
         }
         
+        print("\n[DEBUG GEMINI] Response:")
+        print("  Finish reason: \(candidate.finishReason ?? "nil")")
+        print("  Parts count: \(candidate.content.parts.count)")
+        
+        for (i, part) in candidate.content.parts.enumerated() {
+            print("  Part \(i):")
+            print("    text: \(part.text?.prefix(50) ?? "nil")")
+            print("    functionCall: \(part.functionCall?.name ?? "nil")")
+            print("    thoughtSignature: \(part.thoughtSignature ?? "nil")")  // ✅ Check this
+        }
+        
         var textContent = ""
         var toolCalls: [ToolCall] = []
+        var thoughtSignatures: [String] = []
         
         for part in candidate.content.parts {
             if let text = part.text {
@@ -246,8 +271,13 @@ public actor GeminiProvider: LLMProvider {
                 toolCalls.append(ToolCall(
                     id: UUID().uuidString,
                     name: functionCall.name,
-                    arguments: functionCall.args
+                    arguments: functionCall.args,
+                    thoughtSignature: part.thoughtSignature
                 ))
+            }
+            
+            if let signature = part.thoughtSignature {
+                thoughtSignatures.append(signature)
             }
         }
         

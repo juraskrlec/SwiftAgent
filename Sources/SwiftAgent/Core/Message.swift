@@ -22,6 +22,7 @@ public struct Message: Codable, Equatable, Sendable {
     public let toolCallId: String?
     public let toolCalls: [ToolCall]?
     public let timestamp: Date
+    public let thoughtSignature: String? // Gemini 3
     
     public init(
         id: String = UUID().uuidString,
@@ -29,7 +30,8 @@ public struct Message: Codable, Equatable, Sendable {
         content: String,
         toolCallId: String? = nil,
         toolCalls: [ToolCall]? = nil,
-        timestamp: Date = Date()
+        timestamp: Date = Date(),
+        thoughtSignature: String? = nil
     ) {
         self.id = id
         self.role = role
@@ -37,6 +39,7 @@ public struct Message: Codable, Equatable, Sendable {
         self.toolCallId = toolCallId
         self.toolCalls = toolCalls
         self.timestamp = timestamp
+        self.thoughtSignature = thoughtSignature
     }
     
     // Convenience constructors
@@ -62,11 +65,13 @@ public struct ToolCall: Codable, Equatable, Sendable {
     public let id: String
     public let name: String
     public let arguments: [String: AnyCodable]
+    public let thoughtSignature: String? // Gemini 3
     
-    public init(id: String, name: String, arguments: [String: AnyCodable]) {
+    public init(id: String, name: String, arguments: [String: AnyCodable], thoughtSignature: String? = nil) {
         self.id = id
         self.name = name
         self.arguments = arguments
+        self.thoughtSignature = thoughtSignature
     }
 }
 

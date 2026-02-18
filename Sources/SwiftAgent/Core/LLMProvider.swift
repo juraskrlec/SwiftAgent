@@ -22,12 +22,14 @@ public struct GenerationOptions: Sendable {
     public let temperature: Double?
     public let topP: Double?
     public let stopSequences: [String]?
+    public let thinkingLevel: ThinkingLevel?
     
-    public init(maxTokens: Int? = nil, temperature: Double? = nil, topP: Double? = nil, stopSequences: [String]? = nil) {
+    public init(maxTokens: Int? = nil, temperature: Double? = nil, topP: Double? = nil, stopSequences: [String]? = nil, thinkingLevel: ThinkingLevel? = nil) {
         self.maxTokens = maxTokens
         self.temperature = temperature
         self.topP = topP
         self.stopSequences = stopSequences
+        self.thinkingLevel = thinkingLevel
     }
     
     public static let `default` = GenerationOptions()

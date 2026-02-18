@@ -19,7 +19,7 @@ final class GeminiProviderTests: XCTestCase {
               !apiKey.isEmpty else {
             throw XCTSkip("GOOGLE_API_KEY not set")
         }
-                
+
         self.apiKey = apiKey
     }
     
@@ -123,5 +123,32 @@ final class GeminiProviderTests: XCTestCase {
         
         XCTAssertTrue(result.success)
         XCTAssertFalse(result.output.isEmpty)
+    }
+    
+    func testGeminiAgentWithCalendar() async throws {
+        guard let apiKey = apiKey, !apiKey.isEmpty else {
+            throw XCTSkip("GOOGLE_API_KEY not set")
+        }
+        
+        let provider = GeminiProvider(apiKey: apiKey, model: .gemini3Flash, thinkingLevel: .minimal)
+        let token = ""
+        
+        let agent = Agent(
+            name: "CalendarAgent",
+            provider: provider,
+            systemPrompt: "You are a calendar assistant. Use google_calendar_tool to check schedules.",
+            tools: [DateTimeTool(), GoogleCalendarTool(accessToken: token)],
+            maxIterations: 10
+        )
+        
+        let result = try await agent.run(task: "What's on my schedule today?")
+        
+        print("\nFinal answer:")
+        print(result.output)
+        print("\nIterations: \(result.state.iterations)")
+        print("Messages: \(result.state.messages.count)")
+        
+        XCTAssertTrue(result.success)
+        XCTAssertGreaterThan(result.state.iterations, 0, "Should have used tools")
     }
 }
