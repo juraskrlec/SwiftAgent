@@ -15,7 +15,7 @@ public struct GoogleCalendarTool: Tool, Sendable {
     Requires Google Calendar API access token.
     """
     
-    private let accessToken: String
+    public let accessToken: String
     
     public init(accessToken: String) {
         self.accessToken = accessToken

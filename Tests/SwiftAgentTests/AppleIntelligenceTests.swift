@@ -594,6 +594,30 @@ final class AppleIntelligenceTests: XCTestCase {
         
         XCTAssertEqual(result.visitedNodes.count, 2)
     }
+    
+    func testAppleIntelligenceAgentWithGoogleCalendar() async throws {
+        
+        let provider = try await AppleIntelligenceProvider()
+        let token = "<set token>"
+        
+        let agent = Agent(
+            name: "CalendarAgent",
+            provider: provider,
+            systemPrompt: "You are a calendar assistant. Use google_calendar_tool to check schedules.",
+            tools: [DateTimeTool(), GoogleCalendarTool(accessToken: token)],
+            maxIterations: 10
+        )
+        
+        let result = try await agent.run(task: "What's on my schedule tomorrow?")
+        
+        print("\nFinal answer:")
+        print(result.output)
+        print("\nIterations: \(result.state.iterations)")
+        print("Messages: \(result.state.messages.count)")
+        
+        XCTAssertTrue(result.success)
+        XCTAssertGreaterThan(result.state.iterations, 0, "Should have used tools")
+    }
 }
 
 #endif

@@ -254,6 +254,105 @@ struct WebSearchToolWrapper: FMTool {
     }
 }
 
+// MARK: - GoogleCalendarTool Wrapper
+
+@available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)
+struct GoogleCalendarToolWrapper: FMTool {
+    let name = "google_calendar_tool"
+    let description = "Manage Google Calendar events. Can create, read, update, and delete calendar events."
+    
+    private let accessToken: String
+    
+    init(accessToken: String) {
+        self.accessToken = accessToken
+    }
+    
+    @Generable
+    struct Arguments {
+        @Guide(description: """
+        Action to perform:
+        - 'create': Create a new calendar event
+        - 'list': List upcoming events
+        - 'get': Get details of a specific event
+        - 'update': Update an existing event
+        - 'delete': Delete an event
+        - 'search': Search for events
+        - 'list_calendars': List all calendars
+        """)
+        let action: String
+        
+        @Guide(description: "Calendar ID (default: 'primary' for main calendar)")
+        let calendarId: String?
+        
+        @Guide(description: "Event title/summary (required for create)")
+        let summary: String?
+        
+        @Guide(description: "Event description")
+        let description: String?
+        
+        @Guide(description: "Event location")
+        let location: String?
+        
+        @Guide(description: "Start time in ISO 8601 format e.g. '2026-02-19T14:00:00Z' (required for create)")
+        let startTime: String?
+        
+        @Guide(description: "End time in ISO 8601 format e.g. '2026-02-19T15:00:00Z' (required for create)")
+        let endTime: String?
+        
+        @Guide(description: "Time zone e.g. 'America/New_York', 'Europe/Zagreb' (default: 'UTC')")
+        let timeZone: String?
+        
+        @Guide(description: "Comma-separated attendee emails e.g. 'alice@example.com,bob@example.com'")
+        let attendees: String?
+        
+        @Guide(description: "Add Google Meet link (true/false)")
+        let addMeetLink: Bool?
+        
+        @Guide(description: "Event ID (required for get, update, delete actions)")
+        let eventId: String?
+        
+        @Guide(description: "Search query (required for search action)")
+        let query: String?
+        
+        @Guide(description: "Maximum number of results (1-50, default: 10)", .range(1...50))
+        let maxResults: Int?
+        
+        @Guide(description: "Lower bound for event start time in ISO 8601 format")
+        let timeMin: String?
+        
+        @Guide(description: "Upper bound for event start time in ISO 8601 format")
+        let timeMax: String?
+    }
+    
+    func call(arguments: Arguments) async throws -> String {
+        let tool = GoogleCalendarTool(accessToken: accessToken)
+        
+        var args: [String: Any] = ["action": arguments.action]
+        
+        if let calendarId = arguments.calendarId { args["calendarId"] = calendarId }
+        if let summary = arguments.summary { args["summary"] = summary }
+        if let description = arguments.description { args["description"] = description }
+        if let location = arguments.location { args["location"] = location }
+        if let startTime = arguments.startTime { args["startTime"] = startTime }
+        if let endTime = arguments.endTime { args["endTime"] = endTime }
+        if let timeZone = arguments.timeZone { args["timeZone"] = timeZone }
+        
+        if let attendeesStr = arguments.attendees, !attendeesStr.isEmpty {
+            let attendeesList = attendeesStr.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+            args["attendees"] = attendeesList
+        }
+        
+        if let addMeetLink = arguments.addMeetLink { args["addMeetLink"] = addMeetLink }
+        if let eventId = arguments.eventId { args["eventId"] = eventId }
+        if let query = arguments.query { args["query"] = query }
+        if let maxResults = arguments.maxResults { args["maxResults"] = maxResults }
+        if let timeMin = arguments.timeMin { args["timeMin"] = timeMin }
+        if let timeMax = arguments.timeMax { args["timeMax"] = timeMax }
+        
+        return try await tool.execute(arguments: args)
+    }
+}
+
 // MARK: - Factory
 
 @available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)
@@ -277,6 +376,11 @@ public struct FoundationModelToolFactory {
             return JSONParserToolWrapper()
         case "web_search_tool":
             return WebSearchToolWrapper()
+        case "google_calendar_tool":  //
+            if let calendarTool = tool as? GoogleCalendarTool {
+                return GoogleCalendarToolWrapper(accessToken: calendarTool.accessToken)
+            }
+            return nil
         default:
             return nil
         }
