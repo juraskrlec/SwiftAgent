@@ -130,8 +130,8 @@ final class GeminiProviderTests: XCTestCase {
             throw XCTSkip("GOOGLE_API_KEY not set")
         }
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini3Flash, thinkingLevel: .minimal)
-        let token = ""
+        let provider = GeminiProvider(apiKey: apiKey, model: .gemini25Flash)
+        let token = "<set your personal access token here>"
         
         let agent = Agent(
             name: "CalendarAgent",

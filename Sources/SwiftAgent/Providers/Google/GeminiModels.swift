@@ -51,8 +51,21 @@ struct GeminiRequest: Encodable {
         let stopSequences: [String]?
         let thinkingConfig: ThinkingConfig?
         
+        enum CodingKeys: CodingKey {
+            case temperature
+            case topP
+            case topK
+            case maxOutputTokens
+            case stopSequences
+            case thinkingConfig
+        }
+        
         struct ThinkingConfig: Encodable {
             let thinkingLevel: String
+            
+            enum CodingKeys: CodingKey {
+                case thinkingLevel
+            }
         }
     }
     

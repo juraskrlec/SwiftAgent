@@ -30,6 +30,14 @@ actor GeminiAPI {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let encoder = JSONEncoder()
+        
+        encoder.outputFormatting = .prettyPrinted
+        if let jsonData = try? encoder.encode(request),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            print("\n[DEBUG GEMINI REQUEST]:")
+            print(jsonString)
+        }
+        
         urlRequest.httpBody = try encoder.encode(request)
         
         let (data, response) = try await session.data(for: urlRequest)

@@ -132,9 +132,8 @@ public actor InMemoryVectorStore: VectorStore {
         }
         
         // Divide all elements by magnitude
-        var divisor = magnitude
         result.withUnsafeMutableBufferPointer { buffer in
-            vDSP_vsdiv(buffer.baseAddress!, 1, &divisor, buffer.baseAddress!, 1, vDSP_Length(buffer.count))
+            vDSP_vsdiv(buffer.baseAddress!, 1, &magnitude, buffer.baseAddress!, 1, vDSP_Length(buffer.count))
         }
         
         return result
@@ -201,11 +200,7 @@ public actor InMemoryVectorStore: VectorStore {
     }
     
     /// Compute similarities serially for small datasets
-    private func computeChunkSimilaritiesSerial(
-        queryEmbedding: ContiguousArray<Float>,
-        startIndex: Int,
-        endIndex: Int
-    ) async -> [Float] {
+    private func computeChunkSimilaritiesSerial(queryEmbedding: ContiguousArray<Float>, startIndex: Int, endIndex: Int) async -> [Float] {
         var similarities = [Float](repeating: 0, count: endIndex - startIndex)
         
         for index in startIndex..<endIndex {
