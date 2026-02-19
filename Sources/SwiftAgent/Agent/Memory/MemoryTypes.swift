@@ -11,10 +11,10 @@ import Foundation
 
 /// Working memory for current conversation
 public struct WorkingMemory: Codable, Sendable {
-    public var entities: [String: Entity]           // Mentioned entities
-    public var facts: [Fact]                        // Current facts
-    public var context: [String: String]            // Key-value context
-    public var recentSummary: String?               // Summary of recent messages
+    public var entities: [String: Entity] // Mentioned entities
+    public var facts: [Fact] // Current facts
+    public var context: [String: String] // Key-value context
+    public var recentSummary: String? // Summary of recent messages
     public var lastUpdated: Date
     
     public init(
@@ -92,8 +92,8 @@ public struct Entity: Codable, Sendable, Identifiable {
 public struct Fact: Codable, Sendable, Identifiable {
     public let id: String
     public let content: String
-    public let confidence: Double       // 0.0 - 1.0
-    public let source: String           // Where this came from
+    public let confidence: Double // 0.0 - 1.0
+    public let source: String // Where this came from
     public let timestamp: Date
     public var verified: Bool
     
@@ -172,9 +172,9 @@ public struct Episode: Codable, Sendable, Identifiable {
     public let threadId: String
     public var summary: String
     public var keyPoints: [String]
-    public var entities: [String]           // Entity IDs mentioned
+    public var entities: [String] // Entity IDs mentioned
     public var sentiment: Sentiment
-    public var importance: Double           // 0.0 - 1.0
+    public var importance: Double // 0.0 - 1.0
     public var startTime: Date
     public var endTime: Date
     public var metadata: [String: String]
@@ -221,7 +221,7 @@ public struct SemanticMemory: Codable, Sendable, Identifiable {
     public var content: String
     public var relatedConcepts: [String]
     public var confidence: Double
-    public var sources: [String]            // Episode IDs or external sources
+    public var sources: [String] // Episode IDs or external sources
     public var createdAt: Date
     public var lastAccessed: Date
     public var accessCount: Int

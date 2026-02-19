@@ -21,11 +21,7 @@ public struct MemoryConfig: Sendable {
 
 extension Agent {
     /// Run with memory
-    public func runWithMemory(
-        task: String,
-        config: MemoryConfig,
-        threadId: String = UUID().uuidString
-    ) async throws -> AgentResult {
+    public func runWithMemory(task: String, config: MemoryConfig, threadId: String = UUID().uuidString) async throws -> AgentResult {
         // Load memories
         let profile = try await config.manager.getUserProfile(userId: config.userId)
         let memories = try await config.manager.recallMemories(userId: config.userId, query: task, limit: 3)
