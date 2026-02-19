@@ -51,8 +51,8 @@ public struct Message: Codable, Equatable, Sendable {
         Message(role: .user, content: content)
     }
     
-    public static func assistant(_ content: String, toolCalls: [ToolCall]? = nil) -> Message {
-        Message(role: .assistant, content: content, toolCalls: toolCalls)
+    public static func assistant(_ content: String, toolCalls: [ToolCall]? = nil, thoughtSignature: String? = nil) -> Message {
+        Message(role: .assistant, content: content, toolCalls: toolCalls, thoughtSignature: thoughtSignature)
     }
     
     public static func tool(_ content: String, toolCallId: String) -> Message {

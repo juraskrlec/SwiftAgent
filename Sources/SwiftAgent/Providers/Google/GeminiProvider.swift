@@ -10,6 +10,7 @@ import Foundation
 /// Google Gemini LLM Provider
 public actor GeminiProvider: LLMProvider {
     public enum Model: String, Sendable {
+        case gemini31Pro = "gemini-3.1-pro-preview"
         case gemini3Pro = "gemini-3-pro-preview"
         case gemini3Flash = "gemini-3-flash-preview"
         case gemini25Flash = "gemini-2.5-flash"
@@ -22,7 +23,7 @@ public actor GeminiProvider: LLMProvider {
     private let defaultMaxTokens: Int
     private let defaultThinkingLevel: ThinkingLevel?
     
-    public init(apiKey: String, model: Model = .gemini25Flash, defaultMaxTokens: Int = 8192, thinkingLevel: ThinkingLevel? = nil) {
+    public init(apiKey: String, model: Model = .gemini3Flash, defaultMaxTokens: Int = 8192, thinkingLevel: ThinkingLevel? = nil) {
         self.api = GeminiAPI(apiKey: apiKey)
         self.model = model
         self.defaultMaxTokens = defaultMaxTokens
@@ -145,7 +146,7 @@ public actor GeminiProvider: LLMProvider {
                             name: toolCallId,
                             response: ["result": AnyCodable(message.content)]
                         ),
-                        thoughtSignature: message.thoughtSignature
+                        thoughtSignature: nil
                     ))
                 }
             } else if let toolCalls = message.toolCalls {
@@ -157,7 +158,7 @@ public actor GeminiProvider: LLMProvider {
                             args: toolCall.arguments
                         ),
                         functionResponse: nil,
-                        thoughtSignature: nil
+                        thoughtSignature: toolCall.thoughtSignature
                     ))
                 }
             } else {
@@ -247,17 +248,6 @@ public actor GeminiProvider: LLMProvider {
             throw LLMError.invalidResponse
         }
         
-        print("\n[DEBUG GEMINI] Response:")
-        print("  Finish reason: \(candidate.finishReason ?? "nil")")
-        print("  Parts count: \(candidate.content.parts.count)")
-        
-        for (i, part) in candidate.content.parts.enumerated() {
-            print("  Part \(i):")
-            print("    text: \(part.text?.prefix(50) ?? "nil")")
-            print("    functionCall: \(part.functionCall?.name ?? "nil")")
-            print("    thoughtSignature: \(part.thoughtSignature ?? "nil")")  // ✅ Check this
-        }
-        
         var textContent = ""
         var toolCalls: [ToolCall] = []
         var thoughtSignatures: [String] = []
@@ -267,6 +257,10 @@ public actor GeminiProvider: LLMProvider {
                 textContent += text
             }
             
+            if let signature = part.thoughtSignature {
+                thoughtSignatures.append(signature)
+            }
+            
             if let functionCall = part.functionCall {
                 toolCalls.append(ToolCall(
                     id: UUID().uuidString,
@@ -274,10 +268,6 @@ public actor GeminiProvider: LLMProvider {
                     arguments: functionCall.args,
                     thoughtSignature: part.thoughtSignature
                 ))
-            }
-            
-            if let signature = part.thoughtSignature {
-                thoughtSignatures.append(signature)
             }
         }
         
@@ -289,13 +279,14 @@ public actor GeminiProvider: LLMProvider {
                 outputTokens: metadata.candidatesTokenCount ?? 0
             )
         }
-        
+                
         return LLMResponse(
             id: UUID().uuidString,
             content: textContent,
             toolCalls: toolCalls.isEmpty ? nil : toolCalls,
             stopReason: stopReason,
-            usage: usage
+            usage: usage,
+            thoughtSignature: thoughtSignatures.last // Get last signature per documentation
         )
     }
     

@@ -22,19 +22,20 @@ public struct LLMResponse: Sendable {
     public let toolCalls: [ToolCall]?
     public let stopReason: StopReason
     public let usage: TokenUsage?
+    public let thoughtSignature: String? // Gemini 3
     
-    public init(
-        id: String = UUID().uuidString,
-        content: String,
-        toolCalls: [ToolCall]? = nil,
-        stopReason: StopReason = .endTurn,
-        usage: TokenUsage? = nil
-    ) {
+    public init(id: String = UUID().uuidString,
+                content: String,
+                toolCalls: [ToolCall]? = nil,
+                stopReason: StopReason = .endTurn,
+                usage: TokenUsage? = nil,
+                thoughtSignature: String? = nil) {
         self.id = id
         self.content = content
         self.toolCalls = toolCalls
         self.stopReason = stopReason
         self.usage = usage
+        self.thoughtSignature = thoughtSignature
     }
 }
 

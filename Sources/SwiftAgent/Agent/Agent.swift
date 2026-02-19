@@ -19,14 +19,13 @@ public actor Agent {
     // Track running task to prevent concurrent executions
     private var runningTask: Task<AgentResult, Error>?
     
-    public init(
-        name: String = "Agent",
-        provider: LLMProvider,
-        systemPrompt: String? = nil,
-        tools: [Tool] = [],
-        maxIterations: Int = 10,
-        options: GenerationOptions = .default
-    ) {
+    public init(name: String = "Agent",
+                provider: LLMProvider,
+                systemPrompt: String? = nil,
+                tools: [Tool] = [],
+                maxIterations: Int = 10,
+                options: GenerationOptions = .default) {
+        
         self.name = name
         self.provider = provider
         self.systemPrompt = systemPrompt

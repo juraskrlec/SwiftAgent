@@ -130,7 +130,7 @@ struct GeminiResponse: Decodable {
             enum CodingKeys: String, CodingKey {
                 case text
                 case functionCall
-                case thoughtSignature = "thought_signature"
+                case thoughtSignature
             }
             
             struct FunctionCall: Decodable {
