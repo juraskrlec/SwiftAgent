@@ -13,11 +13,7 @@ public actor MemoryManager {
     private let embeddingProvider: EmbeddingProvider?
     private let llmProvider: LLMProvider
     
-    public init(
-        store: MemoryStore,
-        embeddingProvider: EmbeddingProvider? = nil,
-        llmProvider: LLMProvider
-    ) {
+    public init(store: MemoryStore, embeddingProvider: EmbeddingProvider? = nil, llmProvider: LLMProvider) {
         self.store = store
         self.embeddingProvider = embeddingProvider
         self.llmProvider = llmProvider
@@ -35,11 +31,7 @@ public actor MemoryManager {
     }
     
     /// Update working memory from messages
-    public func updateWorkingMemory(
-        threadId: String,
-        messages: [Message],
-        userId: String
-    ) async throws {
+    public func updateWorkingMemory(threadId: String, messages: [Message], userId: String) async throws {
         var memory = try await getWorkingMemory(threadId: threadId)
         
         // Extract entities and facts from recent messages
@@ -112,12 +104,7 @@ public actor MemoryManager {
     // MARK: - Long-Term Memory
     
     /// Save conversation as episodic memory
-    public func saveEpisode(
-        userId: String,
-        threadId: String,
-        messages: [Message],
-        importance: Double = 0.5
-    ) async throws {
+    public func saveEpisode(userId: String, threadId: String, messages: [Message], importance: Double = 0.5) async throws {
         // Summarize the conversation
         let summary = try await summarizeConversation(messages: messages)
         

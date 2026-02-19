@@ -340,6 +340,453 @@ for try await event in stream {
 }
 ```
 
+## Human-in-the-Loop
+
+SwiftAgent supports interrupting agent execution to get human approval or input during task execution.
+
+### Basic Interrupt
+
+```swift
+let agent = Agent(
+    name: "Assistant",
+    provider: provider,
+    systemPrompt: "You are a helpful assistant.",
+    tools: [DateTimeTool(), FileSystemTool()],
+    maxIterations: 10
+)
+
+// Agent will pause before executing tools
+let stream = agent.stream(task: "Delete all temporary files")
+
+for try await event in stream {
+    switch event {
+    case .interrupt(let pendingCall):
+        print("Agent wants to call: \(pendingCall.name)")
+        print("Arguments: \(pendingCall.arguments)")
+        
+        // Get user approval
+        print("Approve? (y/n): ", terminator: "")
+        let input = readLine()
+        
+        if input?.lowercased() == "y" {
+            // Continue with execution
+            try await agent.resume()
+        } else {
+            // Cancel and provide alternative
+            try await agent.resume(
+                overrideResult: "User denied permission to delete files."
+            )
+        }
+        
+    case .toolCall(let call):
+        print("🔧 Executing: \(call.name)")
+        
+    case .completed(let result):
+        print("Done: \(result.output)")
+        
+    case .error(let error):
+        print("Error: \(error)")
+        
+    default:
+        break
+    }
+}
+```
+
+### Selective Tools Interrupt
+
+Only interrupt for specific tools:
+
+```swift
+let agent = Agent(
+    name: "Assistant",
+    provider: provider,
+    tools: [
+        DateTimeTool(),
+        FileSystemTool(),
+        HTTPRequestTool()
+    ],
+    interruptBefore: ["file_system_tool", "http_request_tool"],  // Only these
+    maxIterations: 10
+)
+
+let stream = agent.stream(task: "Check the date and delete old files")
+
+for try await event in stream {
+    switch event {
+    case .interrupt(let pendingCall):
+        // Only FileSystemTool and HTTPRequestTool trigger interrupts
+        print("Agent wants to: \(pendingCall.name)")
+        
+        let approved = await getUserApproval(for: pendingCall)
+        
+        if approved {
+            try await agent.resume()
+        } else {
+            try await agent.resume(overrideResult: "Permission denied")
+        }
+        
+    case .completed(let result):
+        print(result.output)
+        
+    default:
+        break
+    }
+}
+```
+
+### Custom Approval Logic
+
+```swift
+func getUserApproval(for toolCall: ToolCall) async -> Bool {
+    switch toolCall.name {
+    case "file_system_tool":
+        // Check if deleting system files
+        if let path = toolCall.arguments["path"] as? String,
+           path.hasPrefix("/System") {
+            return false  // Auto-deny
+        }
+        return true  // Auto-approve safe paths
+        
+    case "http_request_tool":
+        // Check if external API
+        if let url = toolCall.arguments["url"] as? String,
+           !url.contains("mycompany.com") {
+            // Ask user for external APIs
+            return await promptUser("Allow request to \(url)?")
+        }
+        return true
+        
+    default:
+        return true
+    }
+}
+```
+
+## Agent Memory
+
+SwiftAgent includes a comprehensive memory system for building agents that remember conversations, learn from interactions, and maintain context across sessions.
+
+### Memory Types
+
+SwiftAgent supports four types of memory:
+
+    1. Working Memory - Short-term memory for current conversation
+    2. Episodic Memory - Past conversations and interactions
+    3. Semantic Memory - Learned knowledge and facts
+    4. User Profile - User preferences and characteristics
+    
+### In-Memory Storage 
+
+For development and testing:
+
+```swift
+let memoryStore = InMemoryMemoryStore()
+
+// Save user profile
+let profile = UserProfile(
+    userId: "user123",
+    name: "Jura",
+    preferences: ["theme": "dark", "language": "en"],
+    interests: ["Swift", "AI", "iOS"],
+    expertise: ["Swift": .advanced, "Python": .intermediate],
+    communicationStyle: .detailed
+)
+
+try await memoryStore.saveProfile(profile)
+
+// Load profile
+let loaded = try await memoryStore.loadProfile(userId: "user123")
+print(loaded?.name)
+```
+
+### SwiftData Storage 
+
+For production with persistent storage and optional iCloud sync:
+
+```swift
+// Local storage only
+let memoryStore = try SwiftDataMemoryStore(
+    configuration: .local
+)
+
+// iCloud sync enabled
+let memoryStore = try SwiftDataMemoryStore(
+    configuration: .init(enableCloudSync: true)
+)
+
+// Custom configuration
+let memoryStore = try SwiftDataMemoryStore(
+    configuration: .init(
+        enableCloudSync: true,
+        cloudKitContainerIdentifier: "iCloud.com.yourapp.agents"
+    )
+)
+```
+
+### Episodic Memory
+
+Store and retrieve past conversations:
+
+```swift
+// Save episode
+let episode = Episode(
+    userId: "user123",
+    threadId: "thread-abc",
+    summary: "Discussed Swift concurrency and actors",
+    keyPoints: [
+        "Learned about actor isolation",
+        "Discussed async/await patterns",
+        "Explored TaskGroup usage"
+    ],
+    entities: ["Swift", "Concurrency", "Actors"],
+    sentiment: .positive,
+    importance: 0.8,
+    startTime: Date().addingTimeInterval(-3600),
+    endTime: Date()
+)
+
+try await memoryStore.saveEpisode(episode)
+
+// Load recent episodes
+let recentEpisodes = try await memoryStore.loadEpisodes(
+    userId: "user123",
+    limit: 10
+)
+
+// Search episodes
+let swiftEpisodes = try await memoryStore.searchEpisodes(
+    userId: "user123",
+    query: "Swift",
+    limit: 5
+)
+
+for episode in swiftEpisodes {
+    print("Summary: \(episode.summary)")
+    print("Key points: \(episode.keyPoints)")
+    print("Importance: \(episode.importance)")
+}
+```
+
+### Semantic Memory:
+
+Store learned knowledge:
+
+```swift
+// Save knowledge
+let memory = SemanticMemory(
+    userId: "user123",
+    category: "Programming",
+    content: "Swift uses value types (structs) for performance and safety",
+    relatedConcepts: ["Swift", "Structs", "Value Types"],
+    confidence: 0.95,
+    sources: ["episode-123", "documentation"]
+)
+
+try await memoryStore.saveSemanticMemory(memory)
+
+// Load by category
+let programmingKnowledge = try await memoryStore.loadSemanticMemories(
+    userId: "user123",
+    category: "Programming",
+    limit: 10
+)
+
+// Search semantic memory
+let swiftKnowledge = try await memoryStore.searchSemanticMemory(
+    userId: "user123",
+    query: "Swift type system",
+    limit: 5
+)
+```
+
+### Working Memory
+
+Temporary memory for current conversation:
+
+```swift
+let threadId = "current-conversation"
+
+// Create working memory
+var workingMemory = WorkingMemory()
+
+// Add entities mentioned in conversation
+let entity = Entity(
+    type: .person,
+    name: "Alice",
+    attributes: ["role": "developer", "expertise": "Swift"]
+)
+workingMemory.upsertEntity(entity)
+
+// Add facts
+let fact = Fact(
+    content: "Alice prefers functional programming patterns",
+    confidence: 0.8,
+    source: "conversation"
+)
+workingMemory.addFact(fact)
+
+// Set context
+workingMemory.setContext(key: "topic", value: "Swift development")
+workingMemory.recentSummary = "Discussing Swift best practices"
+
+// Save
+try await memoryStore.saveWorkingMemory(workingMemory, threadId: threadId)
+
+// Load later
+let loaded = try await memoryStore.loadWorkingMemory(threadId: threadId)
+print(loaded?.context["topic"])  // "Swift development"
+
+// Clear when done
+try await memoryStore.clearWorkingMemory(threadId: threadId)
+```
+
+### Memory-Enabled Agent
+
+```swift
+let memoryStore = try SwiftDataMemoryStore(configuration: .local)
+let userId = "user123"
+
+// Load user profile
+let profile = try await memoryStore.loadProfile(userId: userId)
+
+// Load recent context
+let recentEpisodes = try await memoryStore.loadEpisodes(
+    userId: userId,
+    limit: 5
+)
+
+// Build system prompt with memory
+let systemPrompt = """
+You are a helpful assistant for \(profile?.name ?? "the user").
+
+User preferences:
+- Communication style: \(profile?.communicationStyle.rawValue ?? "detailed")
+- Interests: \(profile?.interests.joined(separator: ", ") ?? "none")
+
+Recent conversations:
+\(recentEpisodes.map { "- \($0.summary)" }.joined(separator: "\n"))
+
+Remember past interactions and personalize responses.
+"""
+
+let agent = Agent(
+    name: "MemoryAgent",
+    provider: provider,
+    systemPrompt: systemPrompt,
+    tools: [DateTimeTool()],
+    maxIterations: 10
+)
+
+// Run agent
+let result = try await agent.run(task: "What did we discuss last time?")
+
+// Save new episode after conversation
+let newEpisode = Episode(
+    userId: userId,
+    threadId: UUID().uuidString,
+    summary: "Discussed past conversation history",
+    keyPoints: ["Reviewed memory system", "Explained episode storage"],
+    startTime: Date().addingTimeInterval(-300),
+    endTime: Date()
+)
+
+try await memoryStore.saveEpisode(newEpisode)
+```
+
+
+### Memory with RAG
+
+Combine memory with vector search:
+
+```swift
+// Create memory-enhanced RAG agent
+let memoryStore = try SwiftDataMemoryStore(configuration: .local)
+let vectorStore = InMemoryVectorStore(embeddingProvider: embeddingProvider)
+
+// Load user's learned knowledge into vector store
+let semanticMemories = try await memoryStore.loadSemanticMemories(
+    userId: "user123",
+    category: nil,
+    limit: 100
+)
+
+let memoryDocs = semanticMemories.map { memory in
+    Document(
+        id: memory.id,
+        content: memory.content,
+        metadata: [
+            "category": memory.category,
+            "confidence": String(memory.confidence),
+            "sources": memory.sources.joined(separator: ",")
+        ]
+    )
+}
+
+try await vectorStore.add(documents: memoryDocs)
+
+// Create agent with both memory and RAG
+let agent = Agent(
+    name: "SmartAssistant",
+    provider: provider,
+    systemPrompt: "Use both your memory and knowledge base to help the user.",
+    tools: [
+        VectorSearchTool(vectorStore: vectorStore),
+        DateTimeTool()
+    ],
+    maxIterations: 10
+)
+```
+
+### Multi-User Memory
+
+```swift
+// User 1
+let user1Profile = UserProfile(
+    userId: "user1",
+    name: "Alice",
+    interests: ["Swift", "iOS"]
+)
+try await memoryStore.saveProfile(user1Profile)
+
+let user1Episode = Episode(
+    userId: "user1",
+    threadId: "thread1",
+    summary: "Learned about SwiftUI",
+    startTime: Date(),
+    endTime: Date()
+)
+try await memoryStore.saveEpisode(user1Episode)
+
+// User 2
+let user2Profile = UserProfile(
+    userId: "user2",
+    name: "Bob",
+    interests: ["Python", "ML"]
+)
+try await memoryStore.saveProfile(user2Profile)
+
+let user2Episode = Episode(
+    userId: "user2",
+    threadId: "thread2",
+    summary: "Discussed machine learning",
+    startTime: Date(),
+    endTime: Date()
+)
+try await memoryStore.saveEpisode(user2Episode)
+
+// Load per-user data
+let aliceEpisodes = try await memoryStore.loadEpisodes(
+    userId: "user1",
+    limit: 10
+)  // Only Alice's episodes
+
+let bobEpisodes = try await memoryStore.loadEpisodes(
+    userId: "user2",
+    limit: 10
+)  // Only Bob's episodes
+```
+
 ## Built-in Tools
 
 SwiftAgent includes several ready-to-use tools:
@@ -361,6 +808,12 @@ WebSearchTool()
 
 // Vector search (RAG)
 VectorSearchTool(vectorStore: vectorStore)
+
+// Google Calendar
+GoogleCalendarTool(accessToken: "")
+
+// Calendar - Apple Calendar
+CalendarTool()
 ```
 
 ## Creating Custom Tools
@@ -437,21 +890,13 @@ let result = try await graph.invoke(input: state)
 
 ## Provider Comparison
 
-| Provider | API Key | Cost | Speed | Privacy | Tools | Streaming | Context |
-|----------|---------|------|-------|---------|-------|-----------|---------|
-| **Claude** | ✅ Required | 💰 Paid | ⚡ Fast | ☁️ Cloud | ✅ Yes | ✅ Yes | 200K |
-| **OpenAI** | ✅ Required | 💰 Paid | ⚡ Fast | ☁️ Cloud | ✅ Yes | ✅ Yes | 128K |
-| **Gemini** | ✅ Required | 🆓 Free/Paid | 🚀 Very Fast | ☁️ Cloud | ✅ Yes | ✅ Yes | 2M |
-| **Apple Intelligence** | ❌ Not needed | 🆓 Free | 🚀 Very Fast | 🔒 On-device | ✅ Yes | ✅ Yes | 4K |
+| Provider | API Key | Cost | Privacy | Tools | Streaming | Context |
+|----------|---------|------|---------|-------|-----------|---------|
+| **Claude** | ✅ Required | 💰 Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | 200K |
+| **OpenAI** | ✅ Required | 💰 Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | 128K |
+| **Gemini** | ✅ Required | 🆓 Free/Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | 2M |
+| **Apple Intelligence** | ❌ Not needed | 🆓 Free | 🔒 On-device | ✅ Yes | ✅ Yes | 4K |
 
-### When to use each:
-
-- **Claude**: Most capable reasoning, complex tasks, long context
-- **OpenAI**: Broad capabilities, good documentation, wide adoption
-- **Gemini**: FREE tier, huge context (2M tokens), fast performance
-- **Apple Intelligence**: Privacy-focused, offline capability, no API costs
-
-**Recommendation**: Use Gemini embeddings for cost-effective RAG!
 
 ## Vector Store Comparison
 
@@ -529,9 +974,9 @@ swift test --filter GeminiEmbeddingTests
 
 ## Requirements
 
-- iOS 16.0+ / macOS 13.0+ / watchOS 9.0+ / tvOS 16.0+
+- iOS 17.0+ / macOS 14.0+ / watchOS 10.0+ / tvOS 17.0+
 - Swift 6.0+
-- Xcode 16.0+
+- Xcode 26.0+
 
 **For Apple Intelligence:**
 - iOS 26.0+ / macOS 26.0+
@@ -573,25 +1018,19 @@ let vectorStore = PineconeVectorStore(
 )
 ```
 
-### Apple Intelligence
-
-No API key needed! Just requires:
-1. Compatible device (iPhone 15 Pro+, M1+ Mac)
-2. iOS 26.0+ or macOS 26.0+
-3. Apple Intelligence enabled in Settings
-
 ## Examples
 
 Check out the `Examples/` directory for complete examples:
 - **ResearchAssistant** - Multi-agent research pipeline with RAG
 - **ContinuousLearner** - Agent that learns and improves over time
+- **PersonalAssistan** - Agent that manages your Google Calendar
 
 ## Best Practices
 
 ### 1. Choose the Right Provider
 
 - **Complex reasoning**: Claude Opus or Sonnet
-- **Speed and cost**: Gemini (FREE!), Claude Haiku, OpenAI GPT-5.2 Nano
+- **Speed and cost**: Gemini 3 Flash, Claude Haiku, OpenAI GPT-5.2 Nano
 - **Privacy**: Apple Intelligence
 - **Huge context**: Gemini (2M tokens)
 
@@ -649,8 +1088,8 @@ Contributions are welcome! Please:
 - [x] RAG support (In-Memory, Pinecone)
 - [x] Multi-agent graphs
 - [x] Streaming responses
+- [x] Memory system for persistent conversation history
 - [ ] Additional vector stores (Weaviate, Qdrant, Chroma)
-- [ ] Memory system for persistent conversation history
 - [ ] Agent templates for common use cases
 - [ ] Vision/multimodal tool support
 - [ ] More built-in tools (Calendar, Contacts, Email, etc.)
