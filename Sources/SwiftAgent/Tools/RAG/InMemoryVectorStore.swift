@@ -11,8 +11,8 @@ import Accelerate
 /// High-performance in-memory vector store with embeddings
 public actor InMemoryVectorStore: VectorStore {
     private var documents: [String: Document] = [:]
-    private var embeddings: ContiguousArray<Float> = []  // All embeddings in contiguous memory
-    private var documentIds: [String] = []  // Maps index to document ID
+    private var embeddings: ContiguousArray<Float> = []
+    private var documentIds: [String] = []
     private let embeddingProvider: EmbeddingProvider
     private let embeddingDimension: Int
     

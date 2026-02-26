@@ -141,18 +141,21 @@ public actor GeminiProvider: LLMProvider {
                 if let toolCallId = message.toolCallId {
                     currentParts.append(GeminiRequest.Part(
                         text: nil,
+                        inlineData: nil,
                         functionCall: nil,
                         functionResponse: GeminiRequest.FunctionResponse(
                             name: toolCallId,
-                            response: ["result": AnyCodable(message.content)]
+                            response: ["result": AnyCodable(message.textContent)]
                         ),
                         thoughtSignature: nil
                     ))
                 }
             } else if let toolCalls = message.toolCalls {
+                // Function calls
                 for toolCall in toolCalls {
                     currentParts.append(GeminiRequest.Part(
                         text: nil,
+                        inlineData: nil,
                         functionCall: GeminiRequest.FunctionCall(
                             name: toolCall.name,
                             args: toolCall.arguments
@@ -162,13 +165,30 @@ public actor GeminiProvider: LLMProvider {
                     ))
                 }
             } else {
-                // Regular text
-                currentParts.append(GeminiRequest.Part(
-                    text: message.content,
-                    functionCall: nil,
-                    functionResponse: nil,
-                    thoughtSignature: message.thoughtSignature
-                ))
+                for part in message.content {
+                    switch part {
+                    case .text(let text):
+                        currentParts.append(GeminiRequest.Part(
+                            text: text,
+                            inlineData: nil,
+                            functionCall: nil,
+                            functionResponse: nil,
+                            thoughtSignature: message.thoughtSignature
+                        ))
+                        
+                    case .image(let imageContent):
+                        currentParts.append(GeminiRequest.Part(
+                            text: nil,
+                            inlineData: GeminiRequest.InlineData(
+                                mimeType: imageContent.mimeType,
+                                data: imageContent.data.base64EncodedString()
+                            ),
+                            functionCall: nil,
+                            functionResponse: nil,
+                            thoughtSignature: nil
+                        ))
+                    }
+                }
             }
         }
         

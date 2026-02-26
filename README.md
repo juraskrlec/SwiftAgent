@@ -51,6 +51,9 @@ swift run ResearchAssistant
 
 # Run Continuous Learner
 swift run ContinuousLearner
+
+# Run Personal Assistant
+swift run PersonalAssistant
 ```
 
 Or in Xcode:
@@ -58,7 +61,7 @@ Or in Xcode:
 2. Select the scheme (ResearchAssistant or ContinuousLearner)
 3. Edit Scheme → Run → Arguments → Environment Variables
 4. Add OPENAI_API_KEY, GOOGLE_API_KEY and ANTHROPIC_API_KEY
-5. Run!
+5. Run
 
 ## Quick Start
 
@@ -153,7 +156,7 @@ SwiftAgent includes comprehensive RAG support with vector stores and embeddings.
 // Create embedding provider
 let embeddingProvider = GeminiEmbeddingProvider(
     apiKey: "your-google-key",
-    model: .embedding001  // Free!
+    model: .embedding001
 )
 
 // Or use OpenAI embeddings

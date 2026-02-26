@@ -21,17 +21,30 @@ struct GeminiRequest: Encodable {
     
     struct Part: Encodable {
         let text: String?
+        let inlineData: InlineData?
         let functionCall: FunctionCall?
         let functionResponse: FunctionResponse?
         let thoughtSignature: String? // Gemini 3 Thought models
         
         enum CodingKeys: String, CodingKey {
             case text
+            case inlineData
             case functionCall
             case functionResponse
             case thoughtSignature = "thought_signature"
         }
     }
+    
+    struct InlineData: Encodable {
+        let mimeType: String
+        let data: String
+        
+        enum CodingKeys: String, CodingKey {
+            case mimeType
+            case data
+        }
+    }
+
     
     struct FunctionCall: Encodable {
         let name: String

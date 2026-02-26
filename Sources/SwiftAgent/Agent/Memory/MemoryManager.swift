@@ -36,7 +36,7 @@ public actor MemoryManager {
         
         // Extract entities and facts from recent messages
         let recentMessages = Array(messages.suffix(5))
-        let conversationText = recentMessages.map { $0.content }.joined(separator: "\n")
+        let conversationText = recentMessages.map { $0.textContent }.joined(separator: "\n")
         
         // Use LLM to extract structured information
         let extractionPrompt = """
@@ -212,7 +212,7 @@ public actor MemoryManager {
     }
     
     private func extractKeyPoints(messages: [Message]) async throws -> [String] {
-        let conversationText = messages.map { $0.content }.joined(separator: "\n")
+        let conversationText = messages.map { $0.textContent }.joined(separator: "\n")
         
         let prompt = """
         Extract 3-5 key points from this conversation. Return as a JSON array of strings.
@@ -242,7 +242,7 @@ public actor MemoryManager {
         messages: [Message],
         episodeId: String
     ) async throws {
-        let conversationText = messages.map { $0.content }.joined(separator: "\n")
+        let conversationText = messages.map { $0.textContent }.joined(separator: "\n")
         
         let prompt = """
         Extract general knowledge or learnings from this conversation that might be useful in future conversations.

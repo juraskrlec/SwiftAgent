@@ -16,7 +16,7 @@ public enum GraphNode: Sendable {
         switch self {
         case .agent(let agent):
             // Extract the last user message or use a default
-            let task = state.messages.last(where: { $0.role == .user })?.content ?? "Continue the task"
+            let task = state.messages.last(where: { $0.role == .user })?.textContent ?? "Continue the task"
             
             let result = try await agent.run(task: task)
             

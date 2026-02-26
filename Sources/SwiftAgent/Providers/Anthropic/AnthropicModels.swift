@@ -73,7 +73,8 @@ struct ContentBlock: Codable {
     let id: String?
     let name: String?
     let input: [String: AnyCodable]?
-    let content: String?  // For tool_result blocks
+    let content: String?
+    let source: ImageSource?
     
     enum CodingKeys: String, CodingKey {
         case type
@@ -82,16 +83,26 @@ struct ContentBlock: Codable {
         case name
         case input
         case content
+        case source
         case toolUseId = "tool_use_id"
     }
     
-    init(type: String, text: String?, id: String?, name: String?, input: [String: AnyCodable]?, content: String? = nil) {
+    init(
+        type: String,
+        text: String?,
+        id: String?,
+        name: String?,
+        input: [String: AnyCodable]?,
+        content: String? = nil,
+        source: ImageSource? = nil
+    ) {
         self.type = type
         self.text = text
         self.id = id
         self.name = name
         self.input = input
         self.content = content
+        self.source = source
     }
     
     init(from decoder: Decoder) throws {
@@ -99,6 +110,7 @@ struct ContentBlock: Codable {
         type = try container.decode(String.self, forKey: .type)
         text = try container.decodeIfPresent(String.self, forKey: .text)
         content = try container.decodeIfPresent(String.self, forKey: .content)
+        source = try container.decodeIfPresent(ImageSource.self, forKey: .source)
         
         // Try both id and tool_use_id
         if let toolUseId = try container.decodeIfPresent(String.self, forKey: .toolUseId) {
@@ -115,12 +127,16 @@ struct ContentBlock: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(type, forKey: .type)
         
+        if type == "image" {
+            try container.encodeIfPresent(source, forKey: .source)
+        }
         // For tool_result, use content and tool_use_id
-        if type == "tool_result" {
+        else if type == "tool_result" {
             try container.encodeIfPresent(content ?? text, forKey: .content)
             try container.encodeIfPresent(id, forKey: .toolUseId)
-        } else {
-            // For other types (text, tool_use), use text/id/name/input
+        }
+        // For other types (text, tool_use), use text/id/name/input
+        else {
             try container.encodeIfPresent(text, forKey: .text)
             try container.encodeIfPresent(id, forKey: .id)
             try container.encodeIfPresent(name, forKey: .name)
@@ -213,7 +229,7 @@ struct AnthropicStreamEvent: Decodable {
 }
 
 struct StreamDelta: Decodable {
-    let type: String? 
+    let type: String?
     let text: String?
     let stopReason: String?
     
@@ -240,4 +256,18 @@ struct AnthropicError: Decodable, Error {
 
 struct AnthropicErrorResponse: Decodable {
     let error: AnthropicError
+}
+
+// MARK: - ImageSource
+
+struct ImageSource: Codable, Sendable {
+    let type: String  // "base64"
+    let mediaType: String  // "image/jpeg", "image/png", "image/webp", "image/gif"
+    let data: String  // Base64 encoded
+    
+    enum CodingKeys: String, CodingKey {
+        case type
+        case mediaType = "media_type"
+        case data
+    }
 }

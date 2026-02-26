@@ -123,9 +123,9 @@ public actor ClaudeProvider: LLMProvider {
     
     // MARK: - Private Helpers
     
-    private func buildRequest(messages: [Message], tools: [Tool]?, options: GenerationOptions,stream: Bool) throws -> AnthropicRequest {
+    private func buildRequest(messages: [Message], tools: [Tool]?, options: GenerationOptions, stream: Bool) throws -> AnthropicRequest {
         // Extract system message
-        let systemMessage = messages.first { $0.role == .system }?.content
+        let systemMessage = messages.first { $0.role == .system }?.textContent
         let conversationMessages = messages.filter { $0.role != .system }
         
         // Convert messages
@@ -150,15 +150,9 @@ public actor ClaudeProvider: LLMProvider {
             stream: stream
         )
         
-//        if let data = try? JSONEncoder().encode(request),
-//           let json = String(data: data, encoding: .utf8) {
-//            print("\n[DEBUG CLAUDE] Request:")
-//            print(json)
-//        }
-        
         return request
     }
-    
+
     private func convertMessage(_ message: Message) throws -> AnthropicMessage {
         let role: String
         switch message.role {
@@ -176,11 +170,12 @@ public actor ClaudeProvider: LLMProvider {
         if message.role == .tool, let toolCallId = message.toolCallId {
             let block = ContentBlock(
                 type: "tool_result",
-                text: nil,  // Don't use text for tool_result
+                text: nil,
                 id: toolCallId,
                 name: nil,
                 input: nil,
-                content: message.content  // Use content instead
+                content: message.textContent,
+                source: nil
             )
             return AnthropicMessage(role: role, content: .blocks([block]))
         }
@@ -190,14 +185,15 @@ public actor ClaudeProvider: LLMProvider {
             var blocks: [ContentBlock] = []
             
             // Add text content if present
-            if !message.content.isEmpty {
+            if !message.textContent.isEmpty {
                 blocks.append(ContentBlock(
                     type: "text",
-                    text: message.content,
+                    text: message.textContent,
                     id: nil,
                     name: nil,
                     input: nil,
-                    content: nil
+                    content: nil,
+                    source: nil
                 ))
             }
             
@@ -209,15 +205,52 @@ public actor ClaudeProvider: LLMProvider {
                     id: toolCall.id,
                     name: toolCall.name,
                     input: toolCall.arguments,
-                    content: nil
+                    content: nil,
+                    source: nil
                 ))
             }
             
             return AnthropicMessage(role: role, content: .blocks(blocks))
         }
         
+        if message.content.count > 1 || !message.images.isEmpty {
+            var blocks: [ContentBlock] = []
+            
+            for part in message.content {
+                switch part {
+                case .text(let text):
+                    blocks.append(ContentBlock(
+                        type: "text",
+                        text: text,
+                        id: nil,
+                        name: nil,
+                        input: nil,
+                        content: nil,
+                        source: nil
+                    ))
+                    
+                case .image(let imageContent):
+                    blocks.append(ContentBlock(
+                        type: "image",
+                        text: nil,
+                        id: nil,
+                        name: nil,
+                        input: nil,
+                        content: nil,
+                        source: ImageSource(
+                            type: "base64",
+                            mediaType: imageContent.mimeType,
+                            data: imageContent.data.base64EncodedString()
+                        )
+                    ))
+                }
+            }
+            
+            return AnthropicMessage(role: role, content: .blocks(blocks))
+        }
+        
         // Regular text message
-        return AnthropicMessage(role: role, content: .text(message.content))
+        return AnthropicMessage(role: role, content: .text(message.textContent))
     }
     
 //    private func convertTool(_ tool: Tool) -> AnthropicTool {

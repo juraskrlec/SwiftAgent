@@ -133,7 +133,7 @@ actor LearningAgent {
         
         let answer = result.messages.first(where: {
             $0.role == .assistant && !$0.content.isEmpty
-        })?.content ?? "No answer"
+        })?.textContent ?? "No answer"
         
         let usedMemory = result.messages.contains(where: {
             $0.role == .tool
@@ -157,7 +157,7 @@ actor LearningAgent {
             var newState = state
             
             let question = state.getValue(forKey: "original_question")?.stringValue ?? ""
-            let answer = state.messages.first(where: { $0.role == .assistant })?.content ?? ""
+            let answer = state.messages.first(where: { $0.role == .assistant })?.textContent ?? ""
             
             let result = try await self.summarizerAgent.run(task: """
             Summarize this exchange:

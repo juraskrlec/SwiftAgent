@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents a message in a conversation
-public struct Message: Codable, Equatable, Sendable {
+public struct Message: Codable, Sendable, Equatable {
     public enum Role: String, Codable, Sendable {
         case system
         case user
@@ -16,26 +16,105 @@ public struct Message: Codable, Equatable, Sendable {
         case tool
     }
     
+    public enum ContentPart: Sendable, Codable, Equatable {
+        case text(String)
+        case image(ImageContent)
+        
+        enum CodingKeys: CodingKey {
+            case type
+            case text
+            case image
+        }
+        
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            
+            switch self {
+            case .text(let text):
+                try container.encode("text", forKey: .type)
+                try container.encode(text, forKey: .text)
+                
+            case .image(let imageContent):
+                try container.encode("image", forKey: .type)
+                try container.encode(imageContent, forKey: .image)
+            }
+        }
+        
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let type = try container.decode(String.self, forKey: .type)
+            
+            switch type {
+            case "text":
+                let text = try container.decode(String.self, forKey: .text)
+                self = .text(text)
+                
+            case "image":
+                let image = try container.decode(ImageContent.self, forKey: .image)
+                self = .image(image)
+                
+            default:
+                throw DecodingError.dataCorruptedError(
+                    forKey: .type,
+                    in: container,
+                    debugDescription: "Unknown content type: \(type)"
+                )
+            }
+        }
+    }
+    
+    public struct ImageContent: Sendable, Codable, Equatable {
+        public let data: Data
+        public let mimeType: String  // "image/jpeg", "image/png", "image/webp"
+        public let detail: ImageDetail?  // Optional: high/low quality for OpenAI
+        
+        public enum ImageDetail: String, Sendable, Codable {
+            case low
+            case high
+            case auto
+        }
+        
+        public init(data: Data, mimeType: String = "image/jpeg", detail: ImageDetail? = nil) {
+            self.data = data
+            self.mimeType = mimeType
+            self.detail = detail
+        }
+    }
+    
     public let id: String
     public let role: Role
-    public let content: String
+    public let content: [ContentPart]
     public let toolCallId: String?
     public let toolCalls: [ToolCall]?
     public let timestamp: Date
     public let thoughtSignature: String? // Gemini 3
     
-    public init(
-        id: String = UUID().uuidString,
-        role: Role,
-        content: String,
-        toolCallId: String? = nil,
-        toolCalls: [ToolCall]? = nil,
-        timestamp: Date = Date(),
-        thoughtSignature: String? = nil
-    ) {
+    public init(id: String = UUID().uuidString,
+                role: Role,
+                content: [ContentPart],
+                toolCalls: [ToolCall]? = nil,
+                toolCallId: String? = nil,
+                timestamp: Date = Date(),
+                thoughtSignature: String? = nil) {
         self.id = id
         self.role = role
         self.content = content
+        self.toolCalls = toolCalls
+        self.toolCallId = toolCallId
+        self.thoughtSignature = thoughtSignature
+        self.timestamp = timestamp
+    }
+    
+    public init(id: String = UUID().uuidString,
+                role: Role,
+                content: String,
+                toolCallId: String? = nil,
+                toolCalls: [ToolCall]? = nil,
+                timestamp: Date = Date(),
+                thoughtSignature: String? = nil) {
+        self.id = id
+        self.role = role
+        self.content = [.text(content)]
         self.toolCallId = toolCallId
         self.toolCalls = toolCalls
         self.timestamp = timestamp
@@ -51,12 +130,36 @@ public struct Message: Codable, Equatable, Sendable {
         Message(role: .user, content: content)
     }
     
+    public static func user(_ text: String, images: [ImageContent]) -> Message {
+        var parts: [ContentPart] = [.text(text)]
+        parts.append(contentsOf: images.map { .image($0) })
+        return Message(role: .user, content: parts)
+    }
+    
+    public static func user(_ text: String, image: ImageContent) -> Message {
+        return user(text, images: [image])
+    }
+    
     public static func assistant(_ content: String, toolCalls: [ToolCall]? = nil, thoughtSignature: String? = nil) -> Message {
         Message(role: .assistant, content: content, toolCalls: toolCalls, thoughtSignature: thoughtSignature)
     }
     
     public static func tool(_ content: String, toolCallId: String) -> Message {
         Message(role: .tool, content: content, toolCallId: toolCallId)
+    }
+    
+    public var textContent: String {
+        content.compactMap {
+            if case .text(let text) = $0 { return text }
+            return nil
+        }.joined(separator: "\n")
+    }
+        
+    public var images: [ImageContent] {
+        content.compactMap {
+            if case .image(let img) = $0 { return img }
+            return nil
+        }
     }
 }
 

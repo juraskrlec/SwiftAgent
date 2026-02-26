@@ -58,7 +58,7 @@ public actor Agent {
     }
     
     /// Run the agent synchronously with a single task
-    public func run(task: String) async throws -> AgentResult {
+    public func run(task: String, images: [Message.ImageContent] = []) async throws -> AgentResult {
         // Check if already running
         if let existingTask = runningTask, !existingTask.isCancelled {
             throw AgentError.alreadyRunning
@@ -66,7 +66,7 @@ public actor Agent {
         
         // Create new task
         let task = Task<AgentResult, Error> {
-            try await self.executeTask(task)
+            try await self.executeTask(task, images: images)
         }
         
         // Store reference
@@ -96,7 +96,7 @@ public actor Agent {
     
     // MARK: - Private Execution
     
-    private func executeTask(_ taskInput: String) async throws -> AgentResult {
+    private func executeTask(_ taskInput: String, images: [Message.ImageContent] = []) async throws -> AgentResult {
         var state = AgentState()
         
         // Add system message if provided
@@ -104,8 +104,11 @@ public actor Agent {
             state.addMessage(.system(systemPrompt))
         }
         
-        // Add user task
-        state.addMessage(.user(taskInput))
+        if images.isEmpty {
+            state.addMessage(.user(taskInput))
+        } else {
+            state.addMessage(.user(taskInput, images: images))
+        }
         
         var totalTokens = 0
         
@@ -168,7 +171,8 @@ public actor Agent {
     }
     
     /// Run the agent with streaming support
-    public func stream(task: String) -> AsyncThrowingStream<AgentEvent, Error> {
+    public func stream(task: String, images: [Message.ImageContent] = []
+    ) -> AsyncThrowingStream<AgentEvent, Error> {
         AsyncThrowingStream { continuation in
             let streamTask = Task {
                 do {
@@ -179,8 +183,11 @@ public actor Agent {
                         state.addMessage(.system(systemPrompt))
                     }
                     
-                    // Add user task
-                    state.addMessage(.user(task))
+                    if images.isEmpty {
+                        state.addMessage(.user(task))
+                    } else {
+                        state.addMessage(.user(task, images: images))
+                    }
                     
                     var totalTokens = 0
                     
@@ -273,14 +280,21 @@ public actor Agent {
     }
     
     /// Invoke the agent with a single message (non-agentic, just one turn)
-    public func invoke(input: String) async throws -> LLMResponse {
+    public func invoke(
+        input: String,
+        images: [Message.ImageContent] = []  // ✅ Add vision support
+    ) async throws -> LLMResponse {
         var messages: [Message] = []
         
         if let systemPrompt = systemPrompt {
             messages.append(.system(systemPrompt))
         }
         
-        messages.append(.user(input))
+        if images.isEmpty {
+            messages.append(.user(input))
+        } else {
+            messages.append(.user(input, images: images))
+        }
         
         // Capture immutable copies before await
         let currentTools = tools.isEmpty ? nil : Array(tools.values)

@@ -199,7 +199,7 @@ actor ResearchGraph {
         let result = try await graph.invoke(input: state)
         
         // Extract final report
-        let finalReport = result.messages.last(where: { $0.role == .assistant })?.content ?? "No report generated"
+        let finalReport = result.messages.last(where: { $0.role == .assistant })?.textContent ?? "No report generated"
         let subtopicsJSON = result.getValue(forKey: "subtopics")?.stringValue ?? "[]"
         let sourcesCount = result.getValue(forKey: "sources_count")?.intValue ?? 0
         
@@ -286,7 +286,7 @@ actor ResearchGraph {
             var newState = state
             
             // Get planner's output
-            let plannerOutput = state.messages.last(where: { $0.role == .assistant })?.content ?? "[]"
+            let plannerOutput = state.messages.last(where: { $0.role == .assistant })?.textContent ?? "[]"
             
             // Extract JSON array from output (might be wrapped in text)
             if let jsonStart = plannerOutput.range(of: "["),
@@ -312,7 +312,7 @@ actor ResearchGraph {
             var newState = state
             
             let findings = state.getValue(forKey: "research_findings")?.stringValue ?? ""
-            let facts = state.messages.last(where: { $0.role == .assistant })?.content ?? ""
+            let facts = state.messages.last(where: { $0.role == .assistant })?.textContent ?? ""
             
             newState.setValue(.string(facts), forKey: "extracted_facts")
             
@@ -339,7 +339,7 @@ actor ResearchGraph {
             
             let topic = state.getValue(forKey: "original_topic")?.stringValue ?? "Unknown"
             let facts = state.getValue(forKey: "extracted_facts")?.stringValue ?? ""
-            let verification = state.messages.last(where: { $0.role == .assistant })?.content ?? ""
+            let verification = state.messages.last(where: { $0.role == .assistant })?.textContent ?? ""
             
             newState.setValue(.string(verification), forKey: "verification_report")
             

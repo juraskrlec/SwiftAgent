@@ -222,19 +222,57 @@ public actor OpenAIProvider: LLMProvider, Sendable {
             case .system:
                 return OpenAIMessage(
                     role: .system,
-                    content: .text(msg.content),
+                    content: .text(msg.textContent),
                     toolCalls: nil,
                     toolCallId: nil
                 )
                 
             case .user:
-                return OpenAIMessage(
-                    role: .user,
-                    content: .text(msg.content),
-                    toolCalls: nil,
-                    toolCallId: nil
-                )
                 
+                if msg.images.isEmpty {
+                    return OpenAIMessage(
+                        role: .user,
+                        content: .text(msg.textContent),
+                        toolCalls: nil,
+                        toolCallId: nil
+                    )
+                } else {
+                    var parts: [OpenAIContentPart] = []
+                    
+                    // Add text parts
+                    for part in msg.content {
+                        if case .text(let text) = part {
+                            parts.append(OpenAIContentPart(
+                                type: .text,
+                                text: text,
+                                imageURL: nil
+                            ))
+                        }
+                    }
+                    
+                    for part in msg.content {
+                        if case .image(let imageContent) = part {
+                            let base64 = imageContent.data.base64EncodedString()
+                            let dataURL = "data:\(imageContent.mimeType);base64,\(base64)"
+                            
+                            parts.append(OpenAIContentPart(
+                                type: .imageURL,
+                                text: nil,
+                                imageURL: OpenAIContentPart.ImageURL(
+                                    url: dataURL,
+                                    detail: imageContent.detail?.rawValue
+                                )
+                            ))
+                        }
+                    }
+                    
+                    return OpenAIMessage(
+                        role: .user,
+                        content: .parts(parts),
+                        toolCalls: nil,
+                        toolCallId: nil
+                    )
+                }
             case .assistant:
                 if let toolCalls = msg.toolCalls {
                     let openAIToolCalls = toolCalls.map { tc -> OpenAIToolCall in
@@ -253,14 +291,14 @@ public actor OpenAIProvider: LLMProvider, Sendable {
                     
                     return OpenAIMessage(
                         role: .assistant,
-                        content: msg.content.isEmpty ? nil : .text(msg.content),
+                        content: msg.textContent.isEmpty ? nil : .text(msg.textContent),
                         toolCalls: openAIToolCalls,
                         toolCallId: nil
                     )
                 } else {
                     return OpenAIMessage(
                         role: .assistant,
-                        content: .text(msg.content),
+                        content: .text(msg.textContent),
                         toolCalls: nil,
                         toolCallId: nil
                     )
@@ -269,7 +307,7 @@ public actor OpenAIProvider: LLMProvider, Sendable {
             case .tool:
                 return OpenAIMessage(
                     role: .tool,
-                    content: .text(msg.content),
+                    content: .text(msg.textContent),
                     toolCalls: nil,
                     toolCallId: msg.toolCallId
                 )
@@ -327,124 +365,11 @@ public actor OpenAIProvider: LLMProvider, Sendable {
             seed: nil,
             user: nil
         )
-//        
-//        let encoder = JSONEncoder()
-//            encoder.outputFormatting = .prettyPrinted
-//            if let data = try? encoder.encode(request),
-//               let json = String(data: data, encoding: .utf8) {
-//                print("\n[DEBUG OpenAI] Request JSON:")
-//                print(json)
-//            }
+        
         
         return request
-        
 
     }
-    
-//    private func buildRequest(messages: [Message], tools: [Tool]?, options: GenerationOptions, stream: Bool) -> OpenAIRequest {
-//        // Convert messages
-//        let openAIMessages = messages.map { msg -> OpenAIMessage in
-//            switch msg.role {
-//            case .system:
-//                return OpenAIMessage(
-//                    role: .system,
-//                    content: .text(msg.content),
-//                    toolCalls: nil,
-//                    toolCallId: nil
-//                )
-//                
-//            case .user:
-//                return OpenAIMessage(
-//                    role: .user,
-//                    content: .text(msg.content),
-//                    toolCalls: nil,
-//                    toolCallId: nil
-//                )
-//                
-//            case .assistant:
-//                if let toolCalls = msg.toolCalls {
-//                    let openAIToolCalls = toolCalls.map { tc -> OpenAIToolCall in
-//                        let argsData = try? JSONEncoder().encode(tc.arguments)
-//                        let argsString = argsData.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-//                        
-//                        return OpenAIToolCall(
-//                            id: tc.id,
-//                            type: "function",
-//                            function: OpenAIFunctionCall(
-//                                name: tc.name,
-//                                arguments: argsString
-//                            )
-//                        )
-//                    }
-//                    
-//                    return OpenAIMessage(
-//                        role: .assistant,
-//                        content: msg.content.isEmpty ? nil : .text(msg.content),
-//                        toolCalls: openAIToolCalls,
-//                        toolCallId: nil
-//                    )
-//                } else {
-//                    return OpenAIMessage(
-//                        role: .assistant,
-//                        content: .text(msg.content),
-//                        toolCalls: nil,
-//                        toolCallId: nil
-//                    )
-//                }
-//                
-//            case .tool:
-//                return OpenAIMessage(
-//                    role: .tool,
-//                    content: .text(msg.content),
-//                    toolCalls: nil,
-//                    toolCallId: msg.toolCallId
-//                )
-//            }
-//        }
-//        
-//        // Convert tools
-//        let openAITools: [OpenAITool]? = tools?.map { tool in
-//            let properties = tool.parameters.properties.mapValues { param in
-//                JSONSchema.Property(
-//                    type: param.type,
-//                    description: param.description,
-//                    enumValues: param.enumValues,
-//                    items: nil
-//                )
-//            }
-//            
-//            return OpenAITool(
-//                type: .function,
-//                function: .init(
-//                    name: tool.name,
-//                    description: tool.description,
-//                    parameters: JSONSchema(
-//                        type: "object",
-//                        properties: properties,
-//                        required: tool.parameters.required,
-//                        additionalProperties: false
-//                    )
-//                )
-//            )
-//        }
-//        
-//        return OpenAIRequest(
-//            model: model.rawValue,
-//            messages: openAIMessages,
-//            maxCompletionTokens: options.maxTokens,
-//            temperature: options.temperature,
-//            topP: options.topP,
-//            stop: options.stopSequences,
-//            stream: stream ? true : nil,
-//            tools: openAITools,
-//            toolChoice: openAITools != nil ? .auto : nil,
-//            parallelToolCalls: nil,
-//            responseFormat: nil,
-//            n: nil,
-//            seed: nil,
-//            user: nil
-//        )
-//    }
     
     // MARK: - Parse Response
     
@@ -495,8 +420,8 @@ public actor OpenAIProvider: LLMProvider, Sendable {
             stopReason: stopReason,
             usage: response.usage.map { usage in
                 TokenUsage(
-                    inputTokens: usage.promptTokens,      // ✅ Fixed
-                    outputTokens: usage.completionTokens  // ✅ Fixed
+                    inputTokens: usage.promptTokens,
+                    outputTokens: usage.completionTokens
                 )
             }
         )
