@@ -320,13 +320,7 @@ let embeddingProvider = OpenAIEmbeddingProvider(
     model: .textEmbedding3Small
 )
 
-let vectorStore = PineconeVectorStore(
-    apiKey: "your-pinecone-key",
-    environment: "us-east-1",
-    indexName: "swiftagent-knowledge",
-    embeddingProvider: embeddingProvider,
-    dimension: 768
-)
+vectorStore = PineconeVectorStore(apiKey: "<api_key>", host: "<direct_host>", embeddingProvider: embeddingProvider)
 
 // Add documents (automatically generates embeddings)
 try await vectorStore.add(documents: documents)

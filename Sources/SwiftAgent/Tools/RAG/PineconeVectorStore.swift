@@ -10,24 +10,45 @@ import Foundation
 /// Pinecone vector database implementation
 public actor PineconeVectorStore: VectorStore {
     private let apiKey: String
-    private let environment: String
-    private let indexName: String
     private let embeddingProvider: EmbeddingProvider
     private let baseURL: String
     private let dimension: Int
+    private let indexName: String
     
-    public init(
-        apiKey: String,
-        environment: String = "us-east-1",
-        indexName: String,
-        embeddingProvider: EmbeddingProvider,
-        dimension: Int = 1536  // Default for OpenAI text-embedding-3-small
-    ) {
+    /// Initialize with direct host (recommended)
+    public init(apiKey: String, host: String, embeddingProvider: EmbeddingProvider, dimension: Int = 1536) {
         self.apiKey = apiKey
-        self.environment = environment
-        self.indexName = indexName
         self.embeddingProvider = embeddingProvider
         self.dimension = dimension
+        
+        // Clean up host if needed
+        var cleanHost = host
+        if cleanHost.hasPrefix("https://") {
+            cleanHost = String(cleanHost.dropFirst(8))
+        }
+        if cleanHost.hasPrefix("http://") {
+            cleanHost = String(cleanHost.dropFirst(7))
+        }
+        
+        self.baseURL = "https://\(cleanHost)"
+        
+        // Extract index name from host
+        // Format: index-name-abc123.svc.region.pinecone.io
+        self.indexName = cleanHost.components(separatedBy: ".").first?
+            .components(separatedBy: "-")
+            .dropLast()
+            .joined(separator: "-") ?? "default"
+    }
+    
+    /// Initialize with environment and index name (legacy)
+    @available(*, deprecated, message: "Use init(apiKey:host:embeddingProvider:dimension:) instead. Get host from Pinecone console.")
+    public init(apiKey: String, environment: String, indexName: String, embeddingProvider: EmbeddingProvider, dimension: Int = 1536) {
+        self.apiKey = apiKey
+        self.embeddingProvider = embeddingProvider
+        self.dimension = dimension
+        self.indexName = indexName
+        
+        // Old format (may not work with newer Pinecone indexes)
         self.baseURL = "https://\(indexName)-\(environment).svc.pinecone.io"
     }
     
