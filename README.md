@@ -7,15 +7,18 @@
   [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
   [![GitHub Stars](https://img.shields.io/github/stars/juraskrlec/SwiftAgent.svg)](https://github.com/juraskrlec/SwiftAgents)
 
-A native Swift framework for building autonomous AI agents with support for multiple LLM providers, tool execution, RAG (Retrieval-Augmented Generation), and multi-agent workflows.
+A native Swift framework for building autonomous AI agents with support for multiple LLM providers, tool execution, RAG (Retrieval-Augmented Generation), vision capabilities, and multi-agent workflows.
 
 ## Features
 
 - **Multiple LLM Providers** - Claude (Anthropic), OpenAI (ChatGPT), Gemini (Google), and Apple Intelligence (on-device)
+- **Vision Support** - Analyze images with GPT-5, Claude Sonnet 4.6, and Gemini 3.1
 - **Tool System** - Built-in tools and easy custom tool creation
 - **Autonomous Agents** - Agents that can reason and use tools to accomplish tasks
 - **RAG Support** - Vector stores, embeddings, and knowledge bases for retrieval-augmented generation
+- **Memory System** - Persistent conversation history with SwiftData and optional iCloud sync
 - **Multi-Agent Graphs** - Build complex workflows with multiple specialized agents (LangGraph equivalent)
+- **Human-in-the-Loop** - Interrupt agents for approval before executing tools
 - **Streaming Support** - Real-time response streaming for all providers
 - **Type-Safe** - Full Swift type safety with Sendable and async/await
 - **Apple Intelligence** - Privacy-focused on-device AI support
@@ -61,7 +64,7 @@ Or in Xcode:
 2. Select the scheme (ResearchAssistant or ContinuousLearner)
 3. Edit Scheme → Run → Arguments → Environment Variables
 4. Add OPENAI_API_KEY, GOOGLE_API_KEY and ANTHROPIC_API_KEY
-5. Run
+5. Run!
 
 ## Quick Start
 
@@ -93,7 +96,7 @@ print(result.output)
 ```swift
 let provider = OpenAIProvider(
     apiKey: "your-openai-api-key",
-    model: .gpt4oMini  // or .gpt4o, .o1, .o1Mini
+    model: .gpt52  // or .gpt52Mini, .o1, .o1Mini
 )
 
 let agent = Agent(
@@ -109,7 +112,7 @@ let result = try await agent.run(task: "Parse this JSON and tell me the name..."
 ```swift
 let provider = GeminiProvider(
     apiKey: "your-google-api-key",
-    model: .gemini3Flash
+    model: .gemini31Pro
 )
 
 let agent = Agent(
@@ -147,6 +150,121 @@ let result = try await agent.run(task: "What's the date 7 days from now?")
 - Device with Apple Intelligence support (iPhone 15 Pro+, M1+ Macs)
 - FoundationModels framework
 
+## Vision (Multimodal)
+
+SwiftAgent supports vision capabilities across multiple providers, allowing agents to analyze images.
+
+### Basic Image Analysis
+```swift
+import SwiftAgent
+import Foundation
+
+// Load an image
+let imageURL = URL(fileURLWithPath: "photo.jpg")
+let imageData = try Data(contentsOf: imageURL)
+let image = Message.ImageContent(data: imageData, mimeType: "image/jpeg")
+
+// Create vision-capable agent
+let provider = OpenAIProvider(apiKey: apiKey, model: .gpt52)
+let agent = Agent(name: "VisionAgent", provider: provider)
+
+// Analyze the image
+let result = try await agent.run(
+    task: "What's in this image? Describe in detail.",
+    images: [image]
+)
+
+print(result.output)
+```
+
+### Receipt Scanner
+```swift
+let receiptAgent = Agent(
+    name: "ReceiptScanner",
+    provider: OpenAIProvider(apiKey: key, model: .gpt52),
+    systemPrompt: """
+    You are a receipt scanner. Extract structured information from receipt images.
+    Return data in JSON format.
+    """,
+    tools: [OCRTool(), JSONParserTool()]
+)
+
+let receiptImage = Message.ImageContent(
+    data: receiptImageData,
+    mimeType: "image/jpeg"
+)
+
+let result = try await receiptAgent.run(
+    task: "Extract merchant, date, total, and all items from this receipt",
+    images: [receiptImage]
+)
+
+// Output: {"merchant": "Starbucks", "total": 15.42, "items": [...]}
+```
+
+### Multiple Images
+```swift
+let image1 = Message.ImageContent(data: photo1Data, mimeType: "image/jpeg")
+let image2 = Message.ImageContent(data: photo2Data, mimeType: "image/jpeg")
+
+let result = try await agent.run(
+    task: "Compare these two images. What are the differences?",
+    images: [image1, image2]
+)
+```
+
+### Document Analysis
+```swift
+let docAgent = Agent(
+    name: "DocumentAnalyzer",
+    provider: ClaudeProvider(apiKey: key, model: .sonnet),
+    tools: [OCRTool(), FileSystemTool()]
+)
+
+let documentImage = Message.ImageContent(
+    data: documentData,
+    mimeType: "image/png",
+    detail: .high  // Request high-quality analysis (OpenAI)
+)
+
+let result = try await docAgent.run(
+    task: """
+    1. Extract all text from this document
+    2. Summarize the main points
+    3. Save the extracted text to a file
+    """,
+    images: [documentImage]
+)
+```
+
+### Vision with Streaming
+```swift
+let stream = agent.stream(
+    task: "Describe this image in detail",
+    images: [image]
+)
+
+for try await event in stream {
+    switch event {
+    case .thinking(let text):
+        print(text, terminator: "")
+    case .completed(let result):
+        print("\nAnalysis complete!")
+    default:
+        break
+    }
+}
+```
+
+### Supported Image Formats
+
+| Format | OpenAI | Claude | Gemini |
+|--------|--------|--------|--------|
+| JPEG | ✅ | ✅ | ✅ |
+| PNG | ✅ | ✅ | ✅ |
+| WebP | ✅ | ✅ | ✅ |
+| GIF | ✅ | ✅ | ✅ |
+
 ## RAG (Retrieval-Augmented Generation)
 
 SwiftAgent includes comprehensive RAG support with vector stores and embeddings.
@@ -156,7 +274,7 @@ SwiftAgent includes comprehensive RAG support with vector stores and embeddings.
 // Create embedding provider
 let embeddingProvider = GeminiEmbeddingProvider(
     apiKey: "your-google-key",
-    model: .embedding001
+    model: .embedding001  // Free!
 )
 
 // Or use OpenAI embeddings
@@ -248,7 +366,7 @@ try await vectorStore.add(documents: documents)
 // Create RAG-enabled agent
 let ragAgent = Agent(
     name: "KnowledgeAgent",
-    provider: GeminiProvider(apiKey: geminiKey, model: .gemini3Flash),
+    provider: GeminiProvider(apiKey: geminiKey, model: .gemini31Pro),
     systemPrompt: """
     You are a helpful assistant with access to a knowledge base.
     Use the search_knowledge_base tool to find relevant information.
@@ -265,56 +383,6 @@ let result = try await ragAgent.run(
     task: "What did we learn about Swift programming?"
 )
 print(result.output)
-```
-
-### Complete RAG Example
-```swift
-let openAIKey = "your-openai-api-key"
-
-// 1. Embeddings
-let embeddingProvider = OpenAIEmbeddingProvider(
-    apiKey: openAIKey,
-    model: .textEmbedding3Small
-)
-
-// 2. Vector Store
-let vectorStore = InMemoryVectorStore(embeddingProvider: embeddingProvider)
-
-// 3. LLM Provider
-let llmProvider = OpenAIProvider(
-    apiKey: openAIKey,
-    model: .gpt52Mini
-)
-
-// 4. Load knowledge
-let knowledge = """
-SwiftAgent is a native Swift framework for building AI agents.
-It supports multiple LLM providers including Claude, OpenAI, Gemini, and Apple Intelligence.
-The framework includes RAG support with vector stores and embeddings.
-"""
-
-let docs = DocumentChunker.createDocuments(
-    from: knowledge,
-    chunkSize: 100,
-    overlap: 20,
-    sourceMetadata: ["source": "readme"]
-)
-
-try await vectorStore.add(documents: docs)
-
-// 5. Create RAG agent
-let agent = Agent(
-    name: "KnowledgeBot",
-    provider: llmProvider,
-    systemPrompt: "Answer questions using the knowledge base. Cite sources.",
-    tools: [VectorSearchTool(vectorStore: vectorStore)],
-    maxIterations: 5
-)
-
-// 6. Ask questions
-let result = try await agent.run(task: "What providers does SwiftAgent support?")
-print(result.output)
-
 ```
 
 ## Streaming Responses
@@ -348,7 +416,6 @@ for try await event in stream {
 SwiftAgent supports interrupting agent execution to get human approval or input during task execution.
 
 ### Basic Interrupt
-
 ```swift
 let agent = Agent(
     name: "Assistant",
@@ -372,23 +439,15 @@ for try await event in stream {
         let input = readLine()
         
         if input?.lowercased() == "y" {
-            // Continue with execution
             try await agent.resume()
         } else {
-            // Cancel and provide alternative
             try await agent.resume(
                 overrideResult: "User denied permission to delete files."
             )
         }
         
-    case .toolCall(let call):
-        print("🔧 Executing: \(call.name)")
-        
     case .completed(let result):
         print("Done: \(result.output)")
-        
-    case .error(let error):
-        print("Error: \(error)")
         
     default:
         break
@@ -396,74 +455,17 @@ for try await event in stream {
 }
 ```
 
-### Selective Tools Interrupt
+### Selective Tool Interrupts
 
 Only interrupt for specific tools:
-
 ```swift
 let agent = Agent(
     name: "Assistant",
     provider: provider,
-    tools: [
-        DateTimeTool(),
-        FileSystemTool(),
-        HTTPRequestTool()
-    ],
+    tools: [DateTimeTool(), FileSystemTool(), HTTPRequestTool()],
     interruptBefore: ["file_system_tool", "http_request_tool"],  // Only these
     maxIterations: 10
 )
-
-let stream = agent.stream(task: "Check the date and delete old files")
-
-for try await event in stream {
-    switch event {
-    case .interrupt(let pendingCall):
-        // Only FileSystemTool and HTTPRequestTool trigger interrupts
-        print("Agent wants to: \(pendingCall.name)")
-        
-        let approved = await getUserApproval(for: pendingCall)
-        
-        if approved {
-            try await agent.resume()
-        } else {
-            try await agent.resume(overrideResult: "Permission denied")
-        }
-        
-    case .completed(let result):
-        print(result.output)
-        
-    default:
-        break
-    }
-}
-```
-
-### Custom Approval Logic
-
-```swift
-func getUserApproval(for toolCall: ToolCall) async -> Bool {
-    switch toolCall.name {
-    case "file_system_tool":
-        // Check if deleting system files
-        if let path = toolCall.arguments["path"] as? String,
-           path.hasPrefix("/System") {
-            return false  // Auto-deny
-        }
-        return true  // Auto-approve safe paths
-        
-    case "http_request_tool":
-        // Check if external API
-        if let url = toolCall.arguments["url"] as? String,
-           !url.contains("mycompany.com") {
-            // Ask user for external APIs
-            return await promptUser("Allow request to \(url)?")
-        }
-        return true
-        
-    default:
-        return true
-    }
-}
 ```
 
 ## Agent Memory
@@ -472,192 +474,31 @@ SwiftAgent includes a comprehensive memory system for building agents that remem
 
 ### Memory Types
 
-SwiftAgent supports four types of memory:
+1. **Working Memory** - Short-term memory for current conversation
+2. **Episodic Memory** - Past conversations and interactions
+3. **Semantic Memory** - Learned knowledge and facts
+4. **User Profile** - User preferences and characteristics
 
-    1. Working Memory - Short-term memory for current conversation
-    2. Episodic Memory - Past conversations and interactions
-    3. Semantic Memory - Learned knowledge and facts
-    4. User Profile - User preferences and characteristics
-    
-### In-Memory Storage 
-
-For development and testing:
-
-```swift
-let memoryStore = InMemoryMemoryStore()
-
-// Save user profile
-let profile = UserProfile(
-    userId: "user123",
-    name: "Jura",
-    preferences: ["theme": "dark", "language": "en"],
-    interests: ["Swift", "AI", "iOS"],
-    expertise: ["Swift": .advanced, "Python": .intermediate],
-    communicationStyle: .detailed
-)
-
-try await memoryStore.saveProfile(profile)
-
-// Load profile
-let loaded = try await memoryStore.loadProfile(userId: "user123")
-print(loaded?.name)
-```
-
-### SwiftData Storage 
+### SwiftData Storage (Production)
 
 For production with persistent storage and optional iCloud sync:
-
 ```swift
 // Local storage only
-let memoryStore = try SwiftDataMemoryStore(
-    configuration: .local
-)
+let memoryStore = try SwiftDataMemoryStore(configuration: .local)
 
 // iCloud sync enabled
 let memoryStore = try SwiftDataMemoryStore(
     configuration: .init(enableCloudSync: true)
 )
-
-// Custom configuration
-let memoryStore = try SwiftDataMemoryStore(
-    configuration: .init(
-        enableCloudSync: true,
-        cloudKitContainerIdentifier: "iCloud.com.yourapp.agents"
-    )
-)
-```
-
-### Episodic Memory
-
-Store and retrieve past conversations:
-
-```swift
-// Save episode
-let episode = Episode(
-    userId: "user123",
-    threadId: "thread-abc",
-    summary: "Discussed Swift concurrency and actors",
-    keyPoints: [
-        "Learned about actor isolation",
-        "Discussed async/await patterns",
-        "Explored TaskGroup usage"
-    ],
-    entities: ["Swift", "Concurrency", "Actors"],
-    sentiment: .positive,
-    importance: 0.8,
-    startTime: Date().addingTimeInterval(-3600),
-    endTime: Date()
-)
-
-try await memoryStore.saveEpisode(episode)
-
-// Load recent episodes
-let recentEpisodes = try await memoryStore.loadEpisodes(
-    userId: "user123",
-    limit: 10
-)
-
-// Search episodes
-let swiftEpisodes = try await memoryStore.searchEpisodes(
-    userId: "user123",
-    query: "Swift",
-    limit: 5
-)
-
-for episode in swiftEpisodes {
-    print("Summary: \(episode.summary)")
-    print("Key points: \(episode.keyPoints)")
-    print("Importance: \(episode.importance)")
-}
-```
-
-### Semantic Memory:
-
-Store learned knowledge:
-
-```swift
-// Save knowledge
-let memory = SemanticMemory(
-    userId: "user123",
-    category: "Programming",
-    content: "Swift uses value types (structs) for performance and safety",
-    relatedConcepts: ["Swift", "Structs", "Value Types"],
-    confidence: 0.95,
-    sources: ["episode-123", "documentation"]
-)
-
-try await memoryStore.saveSemanticMemory(memory)
-
-// Load by category
-let programmingKnowledge = try await memoryStore.loadSemanticMemories(
-    userId: "user123",
-    category: "Programming",
-    limit: 10
-)
-
-// Search semantic memory
-let swiftKnowledge = try await memoryStore.searchSemanticMemory(
-    userId: "user123",
-    query: "Swift type system",
-    limit: 5
-)
-```
-
-### Working Memory
-
-Temporary memory for current conversation:
-
-```swift
-let threadId = "current-conversation"
-
-// Create working memory
-var workingMemory = WorkingMemory()
-
-// Add entities mentioned in conversation
-let entity = Entity(
-    type: .person,
-    name: "Alice",
-    attributes: ["role": "developer", "expertise": "Swift"]
-)
-workingMemory.upsertEntity(entity)
-
-// Add facts
-let fact = Fact(
-    content: "Alice prefers functional programming patterns",
-    confidence: 0.8,
-    source: "conversation"
-)
-workingMemory.addFact(fact)
-
-// Set context
-workingMemory.setContext(key: "topic", value: "Swift development")
-workingMemory.recentSummary = "Discussing Swift best practices"
-
-// Save
-try await memoryStore.saveWorkingMemory(workingMemory, threadId: threadId)
-
-// Load later
-let loaded = try await memoryStore.loadWorkingMemory(threadId: threadId)
-print(loaded?.context["topic"])  // "Swift development"
-
-// Clear when done
-try await memoryStore.clearWorkingMemory(threadId: threadId)
 ```
 
 ### Memory-Enabled Agent
-
 ```swift
 let memoryStore = try SwiftDataMemoryStore(configuration: .local)
 let userId = "user123"
 
 // Load user profile
 let profile = try await memoryStore.loadProfile(userId: userId)
-
-// Load recent context
-let recentEpisodes = try await memoryStore.loadEpisodes(
-    userId: userId,
-    limit: 5
-)
 
 // Build system prompt with memory
 let systemPrompt = """
@@ -666,9 +507,6 @@ You are a helpful assistant for \(profile?.name ?? "the user").
 User preferences:
 - Communication style: \(profile?.communicationStyle.rawValue ?? "detailed")
 - Interests: \(profile?.interests.joined(separator: ", ") ?? "none")
-
-Recent conversations:
-\(recentEpisodes.map { "- \($0.summary)" }.joined(separator: "\n"))
 
 Remember past interactions and personalize responses.
 """
@@ -680,114 +518,6 @@ let agent = Agent(
     tools: [DateTimeTool()],
     maxIterations: 10
 )
-
-// Run agent
-let result = try await agent.run(task: "What did we discuss last time?")
-
-// Save new episode after conversation
-let newEpisode = Episode(
-    userId: userId,
-    threadId: UUID().uuidString,
-    summary: "Discussed past conversation history",
-    keyPoints: ["Reviewed memory system", "Explained episode storage"],
-    startTime: Date().addingTimeInterval(-300),
-    endTime: Date()
-)
-
-try await memoryStore.saveEpisode(newEpisode)
-```
-
-
-### Memory with RAG
-
-Combine memory with vector search:
-
-```swift
-// Create memory-enhanced RAG agent
-let memoryStore = try SwiftDataMemoryStore(configuration: .local)
-let vectorStore = InMemoryVectorStore(embeddingProvider: embeddingProvider)
-
-// Load user's learned knowledge into vector store
-let semanticMemories = try await memoryStore.loadSemanticMemories(
-    userId: "user123",
-    category: nil,
-    limit: 100
-)
-
-let memoryDocs = semanticMemories.map { memory in
-    Document(
-        id: memory.id,
-        content: memory.content,
-        metadata: [
-            "category": memory.category,
-            "confidence": String(memory.confidence),
-            "sources": memory.sources.joined(separator: ",")
-        ]
-    )
-}
-
-try await vectorStore.add(documents: memoryDocs)
-
-// Create agent with both memory and RAG
-let agent = Agent(
-    name: "SmartAssistant",
-    provider: provider,
-    systemPrompt: "Use both your memory and knowledge base to help the user.",
-    tools: [
-        VectorSearchTool(vectorStore: vectorStore),
-        DateTimeTool()
-    ],
-    maxIterations: 10
-)
-```
-
-### Multi-User Memory
-
-```swift
-// User 1
-let user1Profile = UserProfile(
-    userId: "user1",
-    name: "Alice",
-    interests: ["Swift", "iOS"]
-)
-try await memoryStore.saveProfile(user1Profile)
-
-let user1Episode = Episode(
-    userId: "user1",
-    threadId: "thread1",
-    summary: "Learned about SwiftUI",
-    startTime: Date(),
-    endTime: Date()
-)
-try await memoryStore.saveEpisode(user1Episode)
-
-// User 2
-let user2Profile = UserProfile(
-    userId: "user2",
-    name: "Bob",
-    interests: ["Python", "ML"]
-)
-try await memoryStore.saveProfile(user2Profile)
-
-let user2Episode = Episode(
-    userId: "user2",
-    threadId: "thread2",
-    summary: "Discussed machine learning",
-    startTime: Date(),
-    endTime: Date()
-)
-try await memoryStore.saveEpisode(user2Episode)
-
-// Load per-user data
-let aliceEpisodes = try await memoryStore.loadEpisodes(
-    userId: "user1",
-    limit: 10
-)  // Only Alice's episodes
-
-let bobEpisodes = try await memoryStore.loadEpisodes(
-    userId: "user2",
-    limit: 10
-)  // Only Bob's episodes
 ```
 
 ## Built-in Tools
@@ -806,21 +536,21 @@ HTTPRequestTool()
 // File system operations
 FileSystemTool(allowedPaths: ["/tmp"])
 
-// Web search - Based on DuckDuckGo API
+// Web search - DuckDuckGo API
 WebSearchTool()
 
 // Vector search (RAG)
 VectorSearchTool(vectorStore: vectorStore)
 
 // Google Calendar
-GoogleCalendarTool(accessToken: "")
+GoogleCalendarTool(accessToken: "token")
 
-// Calendar - Apple Calendar
-CalendarTool()
+// Vision tools (for reference)
+ImageAnalysisTool()
+OCRTool()
 ```
 
 ## Creating Custom Tools
-
 ```swift
 struct WeatherTool: Tool, Sendable {
     let name = "get_weather"
@@ -849,8 +579,6 @@ struct WeatherTool: Tool, Sendable {
         }
         
         let units = arguments["units"] as? String ?? "celsius"
-        
-        // Your weather API logic here
         let temperature = await fetchWeather(location: location, units: units)
         
         return "The temperature in \(location) is \(temperature)°\(units == "celsius" ? "C" : "F")"
@@ -861,9 +589,6 @@ struct WeatherTool: Tool, Sendable {
 ## Multi-Agent Graphs
 
 Build complex workflows with multiple specialized agents:
-
-### Linear Workflow
-
 ```swift
 let researcher = Agent(
     name: "Researcher",
@@ -893,26 +618,16 @@ let result = try await graph.invoke(input: state)
 
 ## Provider Comparison
 
-| Provider | API Key | Cost | Privacy | Tools | Streaming | Context |
-|----------|---------|------|---------|-------|-----------|---------|
-| **Claude** | ✅ Required | 💰 Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | 200K |
-| **OpenAI** | ✅ Required | 💰 Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | 128K |
-| **Gemini** | ✅ Required | 🆓 Free/Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | 2M |
-| **Apple Intelligence** | ❌ Not needed | 🆓 Free | 🔒 On-device | ✅ Yes | ✅ Yes | 4K |
-
-
-## Vector Store Comparison
-
-| Store | Persistence | Scale | Cost | Best For |
-|-------|------------|-------|------|----------|
-| **InMemoryVectorStore** | Lost on restart | Small (< 100K docs) | 🆓 Free | Development, testing |
-| **PineconeVectorStore** | Permanent | Millions of docs | $0.096/GB/month | Production |
+| Provider | API Key | Cost | Privacy | Tools | Streaming | Vision | Context |
+|----------|---------|------|---------|-------|-----------|--------|---------|
+| **Claude** | ✅ Required | 💰 Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | ✅ Yes | 200K |
+| **OpenAI** | ✅ Required | 💰 Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | ✅ Yes | 128K |
+| **Gemini** | ✅ Required | 🆓 Free/Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | ✅ Yes | 2M |
+| **Apple Intelligence** | ❌ Not needed | 🆓 Free | 🔒 On-device | ✅ Yes | ✅ Yes | ❌ No | 4K |
 
 ## Configuration
 
 ### Environment Variables
-
-For testing, set API keys as environment variables:
 ```bash
 export ANTHROPIC_API_KEY="your-key-here"
 export OPENAI_API_KEY="your-key-here"
@@ -920,8 +635,6 @@ export GOOGLE_API_KEY="your-key-here"
 ```
 
 ### Generation Options
-
-Customize generation behavior:
 ```swift
 let options = GenerationOptions(
     maxTokens: 2000,
@@ -970,107 +683,58 @@ swift test
 
 Run specific tests:
 ```bash
-swift test --filter AppleIntelligenceTests
+swift test --filter VisionTests
 swift test --filter GeminiProviderTests
-swift test --filter GeminiEmbeddingTests
+swift test --filter MemoryTests
 ```
 
 ## Requirements
 
 - iOS 17.0+ / macOS 14.0+ / watchOS 10.0+ / tvOS 17.0+
 - Swift 6.0+
-- Xcode 26.0+
+- Xcode 16.0+
 
 **For Apple Intelligence:**
 - iOS 26.0+ / macOS 26.0+
 - Apple Silicon Mac (M1+) or iPhone 15 Pro+
 - FoundationModels framework
 
-## API Keys
-
-### Claude (Anthropic)
-
-Get your API key from [console.anthropic.com](https://platform.claude.com/settings/keys)
-```swift
-let provider = ClaudeProvider(apiKey: "sk-ant-...")
-```
-
-### OpenAI
-
-Get your API key from [platform.openai.com](https://platform.openai.com/api-keys)
-```swift
-let provider = OpenAIProvider(apiKey: "sk-...")
-```
-
-### Gemini (Google)
-
-Get your API key from [ai.google.dev](https://aistudio.google.com/app/api-keys)
-```swift
-let provider = GeminiProvider(apiKey: "...")
-```
-
-### Pinecone (Optional - for persistent RAG)
-
-Get your API key from [pinecone.io](https://www.pinecone.io)
-```swift
-let vectorStore = PineconeVectorStore(
-    apiKey: "...",
-    environment: "us-east-1",
-    indexName: "my-index",
-    embeddingProvider: embeddingProvider
-)
-```
-
 ## Examples
 
-Check out the `Examples/` directory for complete examples:
+Check out the `Examples/` directory:
 - **ResearchAssistant** - Multi-agent research pipeline with RAG
 - **ContinuousLearner** - Agent that learns and improves over time
-- **PersonalAssistan** - Agent that manages your Google Calendar
+- **PersonalAssistant** - Agent that manages your Google Calendar
 
 ## Best Practices
 
 ### 1. Choose the Right Provider
 
-- **Complex reasoning**: Claude Opus or Sonnet
-- **Speed and cost**: Gemini 3 Flash, Claude Haiku, OpenAI GPT-5.2 Nano
+- **Complex reasoning**: GPT-5.2, Claude Sonnet 4.6, Gemini 3.1 Pro
+- **Vision**: GPT-5.2, Claude Sonnet 4.6, Gemini 3.1 Pro
+- **Speed and cost**: Gemini 3.0 Flash, Claude Haiku
 - **Privacy**: Apple Intelligence
 - **Huge context**: Gemini (2M tokens)
 
-### 2. RAG Best Practices
+### 2. Vision Best Practices
+
+- Use high-quality images (JPG, PNG, WebP)
+- For OCR, ensure text is clear and well-lit
+- Specify detail level for OpenAI (`detail: .high`)
+- Keep images under 20MB
+- Use multiple images for comparisons
+
+### 3. RAG Best Practices
 ```swift
 // Chunk documents appropriately
 let chunks = DocumentChunker.createDocuments(
     from: text,
     chunkSize: 300,      // ~300 words per chunk
-    overlap: 50          // 50 words overlap for context
-)
-
-// Use descriptive metadata
-let doc = Document(
-    id: "unique-id",
-    content: "...",
-    metadata: [
-        "source": "documentation",
-        "category": "swift",
-        "date": "2026-02-13",
-        "author": "team"
-    ]
+    overlap: 50          // 50 words overlap
 )
 
 // Search with appropriate topK
-let results = try await vectorStore.search(
-    query: query,
-    topK: 5  // 3-5 results usually optimal
-)
-```
-
-### 3. Free RAG Stack
-```swift
-// Use Gemini
-let embeddingProvider = GeminiEmbeddingProvider(apiKey: key)
-let vectorStore = InMemoryVectorStore(embeddingProvider: embeddingProvider)
-let llmProvider = GeminiProvider(apiKey: key, model: .gemini20FlashExp)
+let results = try await vectorStore.search(query: query, topK: 5)
 ```
 
 ## Contributing
@@ -1088,14 +752,16 @@ Contributions are welcome! Please:
 ## Roadmap
 
 - [x] Claude, OpenAI, Gemini, Apple Intelligence providers
+- [x] Vision/multimodal support (images)
 - [x] RAG support (In-Memory, Pinecone)
+- [x] Memory system (SwiftData with iCloud sync)
 - [x] Multi-agent graphs
 - [x] Streaming responses
-- [x] Memory system for persistent conversation history
+- [x] Human-in-the-loop
 - [ ] Additional vector stores (Weaviate, Qdrant, Chroma)
 - [ ] Agent templates for common use cases
-- [ ] Vision/multimodal tool support
-- [ ] More built-in tools (Calendar, Contacts, Email, etc.)
+- [ ] Audio/video support
+- [ ] More built-in tools
 - [ ] Agent observability and debugging tools
 
 ## License
