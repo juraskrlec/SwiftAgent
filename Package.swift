@@ -46,7 +46,8 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftAgentTests",
-            dependencies: ["SwiftAgent"]
+            dependencies: ["SwiftAgent"],
+            resources: [ .process("Resources")]
         ),
         .executableTarget(
             name: "ContinuousLearner",

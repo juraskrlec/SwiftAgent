@@ -451,7 +451,7 @@ final class AppleIntelligenceTests: XCTestCase {
         
         await graph.addConditionalEdge(from: "classify") { state in
             if let lastMessage = state.messages.last(where: { $0.role == .assistant }) {
-                return lastMessage.content.lowercased().contains("calculate") ? "handle_calculate" : "handle_current"
+                return lastMessage.textContent.lowercased().contains("calculate") ? "handle_calculate" : "handle_current"
             }
             return "handle_current"
         }
