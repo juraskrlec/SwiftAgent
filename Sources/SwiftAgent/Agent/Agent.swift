@@ -34,6 +34,58 @@ public actor Agent {
         self.options = options
     }
     
+    /// Initialize agent with system prompt from markdown file
+    public init(name: String = "Agent",
+                provider: LLMProvider,
+                promptFile: String,
+                promptVariables: [String: String] = [:],
+                tools: [Tool] = [],
+                maxIterations: Int = 10,
+                options: GenerationOptions = .default
+    ) throws {
+        let systemPrompt = try AgentPrompt.load(
+            fromFile: promptFile,
+            variables: promptVariables
+        )
+        
+        self.name = name
+        self.provider = provider
+        self.systemPrompt = systemPrompt
+        self.tools = Dictionary(uniqueKeysWithValues: tools.map { ($0.name, $0) })
+        self.maxIterations = maxIterations
+        self.options = options
+    }
+
+    /// Initialize agent with system prompt from bundle resource
+    public init(
+        name: String = "Agent",
+        provider: LLMProvider,
+        promptResource: String,
+        bundle: Bundle = .main,
+        promptVariables: [String: String] = [:],
+        tools: [Tool] = [],
+        maxIterations: Int = 10,
+        options: GenerationOptions = .default
+    ) throws {
+        var systemPrompt = try AgentPrompt.load(
+            fromBundle: promptResource,
+            bundle: bundle
+        )
+        
+        // Apply variables
+        for (key, value) in promptVariables {
+            systemPrompt = systemPrompt.replacingOccurrences(of: "{{\(key)}}", with: value)
+        }
+        
+        self.name = name
+        self.provider = provider
+        self.systemPrompt = systemPrompt
+        self.tools = Dictionary(uniqueKeysWithValues: tools.map { ($0.name, $0) })
+        self.maxIterations = maxIterations
+        self.options = options
+    }
+
+    
     public func executeTool(_ toolCall: ToolCall) async throws -> String {
         guard let tool = tools[toolCall.name] else {
             throw ToolError.toolNotFound(toolCall.name)

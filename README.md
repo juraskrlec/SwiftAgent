@@ -9,6 +9,82 @@
 
 A native Swift framework for building autonomous AI agents with support for multiple LLM providers, tool execution, RAG (Retrieval-Augmented Generation), vision capabilities, and multi-agent workflows.
 
+# Table of Contents
+
+## Getting Started
+- [Features](#features)
+- [Installation](#installation)
+  - [Swift Package Manager](#swift-package-manager)
+- [Running Examples](#running-examples)
+- [Requirements](#requirements)
+
+## Quick Start
+- [Simple Agent with Claude](#simple-agent-with-claude)
+- [Using OpenAI](#using-openai)
+- [Using Gemini (Google)](#using-gemini-google)
+- [Using Apple Intelligence (On-Device)](#using-apple-intelligence-on-device)
+
+## Core Capabilities
+
+### Vision (Multimodal)
+- [Basic Image Analysis](#basic-image-analysis)
+- [Receipt Scanner](#receipt-scanner)
+- [Multiple Images](#multiple-images)
+- [Document Analysis](#document-analysis)
+- [Vision with Streaming](#vision-with-streaming)
+- [Supported Image Formats](#supported-image-formats)
+
+### Agent Prompts from Markdown Files
+- [Basic Usage](#basic-usage)
+- [With Variables](#with-variables)
+- [Frontmatter Support](#frontmatter-support)
+- [Project Structure](#project-structure)
+
+### RAG (Retrieval-Augmented Generation)
+- [In-Memory Vector Store](#in-memory-vector-store)
+- [Pinecone Vector Store](#pinecone-vector-store)
+- [Document Chunking](#document-chunking)
+- [RAG with Agents](#rag-with-agents)
+
+### Streaming
+- [Streaming Responses](#streaming-responses)
+
+### Human-in-the-Loop
+- [Basic Interrupt](#basic-interrupt)
+- [Selective Tool Interrupts](#selective-tool-interrupts)
+
+### Memory System
+- [Memory Types](#memory-types)
+- [SwiftData Storage (Production)](#swiftdata-storage-production)
+- [Memory-Enabled Agent](#memory-enabled-agent)
+
+## Tools & Extensions
+- [Built-in Tools](#built-in-tools)
+- [Creating Custom Tools](#creating-custom-tools)
+
+## Advanced Features
+- [Multi-Agent Graphs](#multi-agent-graphs)
+- [Provider Comparison](#provider-comparison)
+
+## Configuration & Usage
+- [Configuration](#configuration)
+  - [Environment Variables](#environment-variables)
+  - [Generation Options](#generation-options)
+- [Error Handling](#error-handling)
+- [Testing](#testing)
+
+## Additional Resources
+- [Examples](#examples)
+- [Best Practices](#best-practices)
+  - [Choose the Right Provider](#1-choose-the-right-provider)
+  - [Vision Best Practices](#2-vision-best-practices)
+  - [RAG Best Practices](#3-rag-best-practices)
+- [Contributing](#contributing)
+- [Roadmap](#roadmap)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+- [Support](#support)
+
 ## Features
 
 - **Multiple LLM Providers** - Claude (Anthropic), OpenAI (ChatGPT), Gemini (Google), and Apple Intelligence (on-device)
@@ -264,6 +340,71 @@ for try await event in stream {
 | PNG | ✅ | ✅ | ✅ |
 | WebP | ✅ | ✅ | ✅ |
 | GIF | ✅ | ✅ | ✅ |
+
+## Agent Prompts from Markdown Files
+
+SwiftAgent supports loading agent system prompts from markdown files, making it easy to maintain and version control your agent instructions.
+
+### Basic Usage
+```swift
+// Load prompt from file
+let agent = try Agent(
+    name: "Assistant",
+    provider: provider,
+    promptFile: "Prompts/coding-assistant.md",
+    tools: [FileSystemTool()]
+)
+```
+
+### With Variables
+```swift
+// Use variables in your prompts
+let agent = try Agent(
+    name: "Support",
+    provider: provider,
+    promptFile: "Prompts/customer-support.md",
+    promptVariables: [
+        "company_name": "Acme Corp",
+        "support_email": "help@acme.com"
+    ]
+)
+```
+
+In your markdown file:
+```markdown
+You are {{company_name}}'s customer support agent.
+Contact: {{support_email}}
+```
+
+### Frontmatter Support
+
+Add metadata to your prompt files:
+```markdown
+---
+name: Coding Assistant
+version: 1.0
+model_recommendations: gpt-5.2
+temperature: 0.3
+---
+
+# Your prompt content here...
+```
+
+### Project Structure
+```
+MyProject/
+├── Prompts/
+│   ├── coding-assistant.md
+│   ├── research-assistant.md
+│   └── customer-support.md
+└── main.swift
+```
+
+This pattern makes it easy to:
+- Version control your prompts
+- Share prompts across projects
+- A/B test different prompt versions
+- Collaborate with non-technical team members
 
 ## RAG (Retrieval-Augmented Generation)
 
