@@ -40,7 +40,7 @@ final class VisionTests: XCTestCase {
             mimeType: "image/webp"
         )
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt52)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .defaultChatGPTModel)
         let agent = Agent(name: "OpenAI-VisionAgent", provider: provider)
         
         let result = try await agent.run(
@@ -77,7 +77,7 @@ final class VisionTests: XCTestCase {
             detail: .high
         )
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt52)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .defaultChatGPTModel)
         let agent = Agent(name: "OpenAI-DetailedVision", provider: provider)
         
         let result = try await agent.run(
@@ -107,7 +107,7 @@ final class VisionTests: XCTestCase {
         let imageData = try loadDubrovnikImage()
         let image = Message.ImageContent(data: imageData, mimeType: "image/webp")
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt52)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .defaultChatGPTModel)
         let agent = Agent(name: "OpenAI-StreamVision", provider: provider)
         
         var output = ""
@@ -304,7 +304,7 @@ final class VisionTests: XCTestCase {
             mimeType: "image/webp"
         )
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini31Pro)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         let agent = Agent(name: "Gemini-VisionAgent", provider: provider)
         
         let result = try await agent.run(
@@ -340,7 +340,7 @@ final class VisionTests: XCTestCase {
             mimeType: "image/webp"
         )
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini31Pro)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         let agent = Agent(name: "Gemini-DetailedVision", provider: provider)
         
         let result = try await agent.run(
@@ -370,7 +370,7 @@ final class VisionTests: XCTestCase {
         let imageData = try loadDubrovnikImage()
         let image = Message.ImageContent(data: imageData, mimeType: "image/webp")
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini31Pro)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         let agent = Agent(
             name: "Gemini-VisionWithTools",
             provider: provider,
@@ -399,7 +399,7 @@ final class VisionTests: XCTestCase {
         let imageData = try loadDubrovnikImage()
         let image = Message.ImageContent(data: imageData, mimeType: "image/webp")
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini31Pro)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         let agent = Agent(name: "Gemini-StreamVision", provider: provider)
         
         var output = ""

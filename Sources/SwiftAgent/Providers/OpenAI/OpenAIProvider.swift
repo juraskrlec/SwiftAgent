@@ -7,20 +7,25 @@
 
 import Foundation
 
-public enum OpenAIModel: String, Sendable {
-    case gpt52Pro = "gpt-5.2-pro"
-    case gpt52 = "gpt-5.2"
-    case gpt5Mini = "gpt-5-mini"
-    case gpt5Nano = "gpt-5-nano"
-    case gpt5 = "gpt-5"
-}
-
 public actor OpenAIProvider: LLMProvider, Sendable {
+    
+    public enum Model: String, Sendable {
+        case gpt54 = "gpt-5.4"
+        case gpt54Pro = "gpt-5.4-pro"
+        case gpt52Pro = "gpt-5.2-pro"
+        case gpt52 = "gpt-5.2"
+        case gpt5Mini = "gpt-5-mini"
+        case gpt5Nano = "gpt-5-nano"
+        case gpt5 = "gpt-5"
+        
+        public static let defaultChatGPTModel: OpenAIProvider.Model = OpenAIProvider.Model.gpt54
+    }
+    
     public let apiKey: String
-    public let model: OpenAIModel
+    public let model: OpenAIProvider.Model
     private let baseURL = "https://api.openai.com/v1"
     
-    public init(apiKey: String, model: OpenAIModel = .gpt52) {
+    public init(apiKey: String, model: OpenAIProvider.Model = .defaultChatGPTModel) {
         self.apiKey = apiKey
         self.model = model
     }

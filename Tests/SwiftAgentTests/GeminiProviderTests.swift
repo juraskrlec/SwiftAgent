@@ -33,7 +33,7 @@ final class GeminiProviderTests: XCTestCase {
             throw XCTSkip("GOOGLE_API_KEY not set")
         }
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini25Flash)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         
         let messages = [
             Message.user("What is 2+2? Answer in one short sentence.")
@@ -54,7 +54,7 @@ final class GeminiProviderTests: XCTestCase {
             throw XCTSkip("GOOGLE_API_KEY not set")
         }
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini25Flash)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         
         let messages = [
             Message.user("What's the date 30 days from now?")
@@ -77,7 +77,7 @@ final class GeminiProviderTests: XCTestCase {
             throw XCTSkip("GOOGLE_API_KEY not set")
         }
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini25Flash)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         
         let stream = try await provider.stream(
             messages: [Message.user("Count to 3")],
@@ -107,7 +107,7 @@ final class GeminiProviderTests: XCTestCase {
             throw XCTSkip("GOOGLE_API_KEY not set")
         }
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini25Flash)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         
         let agent = Agent(
             name: "GeminiAgent",
@@ -130,7 +130,7 @@ final class GeminiProviderTests: XCTestCase {
             throw XCTSkip("GOOGLE_API_KEY not set")
         }
         
-        let provider = GeminiProvider(apiKey: apiKey, model: .gemini3Flash)
+        let provider = GeminiProvider(apiKey: apiKey, model: .defaultGeminiModel)
         let token = "<TOKEN>"
         
         let agent = Agent(

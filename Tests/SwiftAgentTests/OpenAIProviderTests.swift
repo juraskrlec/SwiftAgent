@@ -37,7 +37,7 @@ final class OpenAIProviderTests: XCTestCase {
             throw XCTSkip("OPENAI_API_KEY not set")
         }
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5Mini)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .defaultChatGPTModel)
         
         let messages = [
             Message.user("What is 2+2? Answer in one short sentence.")
@@ -58,7 +58,7 @@ final class OpenAIProviderTests: XCTestCase {
             throw XCTSkip("OPENAI_API_KEY not set")
         }
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5Mini)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .defaultChatGPTModel)
         
         let messages = [
             Message.user("What's the date 30 days from now?")
@@ -105,7 +105,7 @@ final class OpenAIProviderTests: XCTestCase {
             throw XCTSkip("OPENAI_API_KEY not set")
         }
         
-        let provider = OpenAIProvider(apiKey: apiKey, model: .gpt5Mini)
+        let provider = OpenAIProvider(apiKey: apiKey, model: .defaultChatGPTModel)
         
         let messages = [
             Message.user("Count to 3. Just the numbers.")

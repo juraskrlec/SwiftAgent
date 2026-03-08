@@ -90,7 +90,7 @@ actor PersonalAssistantGraph {
         self.geminiKey = geminiKey
         self.googleToken = googleToken
         
-        let provider = GeminiProvider(apiKey: geminiKey, model: .gemini25Flash)
+        let provider = GeminiProvider(apiKey: geminiKey, model: .defaultGeminiModel)
         
         // Get current date/time for context
         let now = Date()

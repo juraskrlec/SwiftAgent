@@ -11,11 +11,10 @@ import Foundation
 public actor GeminiProvider: LLMProvider {
     public enum Model: String, Sendable {
         case gemini31Pro = "gemini-3.1-pro-preview"
-        case gemini3Pro = "gemini-3-pro-preview"
-        case gemini3Flash = "gemini-3-flash-preview"
-        case gemini25Flash = "gemini-2.5-flash"
-        case gemini25FlashLite = "gemini-2.5-flash-lite"
-        case gemini25Pro = "gemini-2.5-pro"
+        case gemini31FlashLite = "gemini-3.1-flash-lite-preview"
+        case gemini31FlashImage = "gemini-3.1-flash-image-preview"
+        
+        public static let defaultGeminiModel: GeminiProvider.Model = .gemini31Pro
     }
     
     private let api: GeminiAPI
@@ -23,7 +22,7 @@ public actor GeminiProvider: LLMProvider {
     private let defaultMaxTokens: Int
     private let defaultThinkingLevel: ThinkingLevel?
     
-    public init(apiKey: String, model: Model = .gemini3Flash, defaultMaxTokens: Int = 8192, thinkingLevel: ThinkingLevel? = nil) {
+    public init(apiKey: String, model: Model = .defaultGeminiModel, defaultMaxTokens: Int = 8192, thinkingLevel: ThinkingLevel? = nil) {
         self.api = GeminiAPI(apiKey: apiKey)
         self.model = model
         self.defaultMaxTokens = defaultMaxTokens
@@ -101,7 +100,7 @@ public actor GeminiProvider: LLMProvider {
     
     private func supportsThinking() -> Bool {
         switch model {
-        case .gemini3Flash, .gemini3Pro:
+        case .gemini31Pro, .gemini31FlashLite:
             return true
         default:
             return false

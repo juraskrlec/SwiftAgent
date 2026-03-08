@@ -55,7 +55,7 @@ struct ResearchAssistant {
         
         let ragAgent = Agent(
             name: "QueryAgent",
-            provider: OpenAIProvider(apiKey: openAIKey, model: .gpt5Mini),
+            provider: OpenAIProvider(apiKey: openAIKey, model: .defaultChatGPTModel),
             systemPrompt: "Answer questions based on the knowledge base. Always cite sources.",
             tools: [VectorSearchTool(vectorStore: vectorStore)],
             maxIterations: 3
@@ -92,7 +92,7 @@ actor ResearchGraph {
         self.key = key
         self.vectorStore = vectorStore
         
-        let provider = OpenAIProvider(apiKey: key, model: .gpt5Mini)
+        let provider = OpenAIProvider(apiKey: key, model: .defaultChatGPTModel)
         
         // 1. Planner - Breaks down research into subtopics
         self.planner = Agent(

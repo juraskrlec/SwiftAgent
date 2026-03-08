@@ -77,7 +77,7 @@ actor LearningAgent {
         self.key = key
         self.vectorStore = vectorStore
         
-        let provider = OpenAIProvider(apiKey: key, model: .gpt5Mini)
+        let provider = OpenAIProvider(apiKey: key, model: .defaultChatGPTModel)
         
         // Agent that has conversations
         self.conversationAgent = Agent(

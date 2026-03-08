@@ -96,7 +96,7 @@ print(result.output)
 ```swift
 let provider = OpenAIProvider(
     apiKey: "your-openai-api-key",
-    model: .gpt52  // or .gpt52Mini, .o1, .o1Mini
+    model: .gpt54  // or .gpt5Mini, .o1, .o1Mini
 )
 
 let agent = Agent(
@@ -165,7 +165,7 @@ let imageData = try Data(contentsOf: imageURL)
 let image = Message.ImageContent(data: imageData, mimeType: "image/jpeg")
 
 // Create vision-capable agent
-let provider = OpenAIProvider(apiKey: apiKey, model: .gpt52)
+let provider = OpenAIProvider(apiKey: apiKey, model: .gpt54)
 let agent = Agent(name: "VisionAgent", provider: provider)
 
 // Analyze the image
@@ -181,7 +181,7 @@ print(result.output)
 ```swift
 let receiptAgent = Agent(
     name: "ReceiptScanner",
-    provider: OpenAIProvider(apiKey: key, model: .gpt52),
+    provider: OpenAIProvider(apiKey: key, model: .gpt54),
     systemPrompt: """
     You are a receipt scanner. Extract structured information from receipt images.
     Return data in JSON format.
