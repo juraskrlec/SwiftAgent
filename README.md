@@ -43,6 +43,11 @@ A native Swift framework for building autonomous AI agents with support for mult
 ### RAG (Retrieval-Augmented Generation)
 - [In-Memory Vector Store](#in-memory-vector-store)
 - [Pinecone Vector Store](#pinecone-vector-store)
+- [Gemini Embeddings](#gemini-embeddings)
+  - [Task Types](#task-types)
+  - [Controlling Embedding Size](#controlling-embedding-size)
+  - [Multimodal Embeddings](#multimodal-embeddings)
+- [OpenAI Embeddings](#openai-embeddings)
 - [Document Chunking](#document-chunking)
 - [RAG with Agents](#rag-with-agents)
 
@@ -469,6 +474,163 @@ try await vectorStore.add(documents: documents)
 // Search (persists across app restarts)
 let results = try await vectorStore.search(query: "Swift programming", topK: 5)
 ```
+
+### Gemini Embeddings
+
+`GeminiEmbeddingProvider` supports two models with different capabilities:
+
+| Model | Modalities | MRL Truncation | Best For |
+|---|---|---|---|
+| `gemini-embedding-001` | Text only | ✅ 128–3072 dims | Cost-effective text RAG |
+| `gemini-embedding-2-preview` | Text, Image, Audio, Video, PDF | ❌ | Multimodal search |
+```swift
+let embeddingProvider = GeminiEmbeddingProvider(
+    apiKey: "your-google-key",
+    model: .embedding001
+)
+```
+
+#### Task Types
+
+Specifying a task type optimises the embedding space for your use case, improving retrieval accuracy:
+```swift
+// When indexing documents
+let docEmbedding = try await embeddingProvider.embed(
+    text: "Swift is a powerful language for iOS development.",
+    taskType: .retrievalDocument
+)
+
+// When embedding a search query
+let queryEmbedding = try await embeddingProvider.embed(
+    text: "iOS development tips",
+    taskType: .retrievalQuery
+)
+
+// Other task types
+// .semanticSimilarity   — duplicate detection, recommendations
+// .classification       — sentiment analysis, spam detection
+// .clustering           — document organisation
+// .codeRetrievalQuery   — natural language → code search
+// .questionAnswering    — chatbot Q&A retrieval
+// .factVerification     — evidence retrieval
+```
+
+Use `embedBatch` with task types for efficient bulk indexing:
+```swift
+let embeddings = try await embeddingProvider.embedBatch(
+    texts: documents.map(\.content),
+    taskType: .retrievalDocument
+)
+```
+
+#### Controlling Embedding Size
+
+`gemini-embedding-001` uses Matryoshka Representation Learning (MRL), allowing you to truncate the default 3072-dimension vector to save storage and speed up similarity search with minimal quality loss.
+```swift
+// Recommended output sizes: 768, 1536, 3072 (default)
+let embedding = try await embeddingProvider.embed(
+    text: "What is SwiftUI?",
+    taskType: .retrievalDocument,
+    outputDimensionality: 768   // ~75% smaller, comparable MTEB score
+)
+```
+
+| Dimensions | MTEB Score | Relative Size |
+|---|---|---|
+| 3072 (default) | 68.26 | 100% |
+| 1536 | 68.17 | 50% |
+| 768 | 67.99 | 25% |
+| 512 | 67.55 | 17% |
+
+> **Note:** The 3072-dimension output is pre-normalised. For 768 or 1536 dimensions, L2-normalise the result before computing cosine similarity.
+
+#### Multimodal Embeddings
+
+`gemini-embedding-2-preview` maps text, images, audio, video, and PDFs into the same vector space, enabling cross-modal search.
+```swift
+let multimodalProvider = GeminiEmbeddingProvider(
+    apiKey: "your-google-key",
+    model: .embedding2
+)
+
+// Embed an image
+let imageData = try Data(contentsOf: imageURL)
+let imageEmbedding = try await multimodalProvider.embedParts([
+    .inlineData(mimeType: "image/png", base64Data: imageData.base64EncodedString())
+])
+
+// Embed text + image together (aggregated into one vector)
+let combinedEmbedding = try await multimodalProvider.embedParts([
+    .text("A photo of a dog"),
+    .inlineData(mimeType: "image/png", base64Data: imageData.base64EncodedString())
+])
+
+// Embed a PDF (up to 6 pages)
+let pdfData = try Data(contentsOf: pdfURL)
+let pdfEmbedding = try await multimodalProvider.embedParts([
+    .inlineData(mimeType: "application/pdf", base64Data: pdfData.base64EncodedString())
+])
+```
+
+**Supported modalities and limits:**
+
+| Modality | Formats | Limit |
+|---|---|---|
+| Text | — | 8,192 tokens |
+| Image | PNG, JPEG | 6 images per request |
+| Audio | MP3, WAV | 80 seconds |
+| Video | MP4, MOV (H264, H265, AV1, VP9) | 128 seconds |
+| PDF | — | 6 pages |
+
+### OpenAI Embeddings
+
+`OpenAIEmbeddingProvider` supports three models with different capability and cost trade-offs:
+
+| Model | Dimensions | MRL Truncation | Notes |
+|---|---|---|---|
+| `textEmbedding3Small` | 1536 | ✅ | Best price/performance |
+| `textEmbedding3Large` | 3072 | ✅ | Highest quality |
+| `textEmbeddingAda002` | 1536 | ❌ | Legacy, not recommended |
+```swift
+let embeddingProvider = OpenAIEmbeddingProvider(
+    apiKey: "your-openai-key",
+    model: .textEmbedding3Small
+)
+```
+
+#### Controlling Embedding Size
+
+`text-embedding-3-small` and `text-embedding-3-large` support MRL truncation via the `dimensions` parameter. Smaller vectors reduce storage and speed up similarity search with minimal quality loss.
+```swift
+// Truncate text-embedding-3-large from 3072 → 256
+// Still outperforms the full ada-002 (1536 dims) on MTEB
+let embedding = try await embeddingProvider.embed(
+    text: "What is SwiftUI?",
+    outputDimensionality: 256
+)
+```
+
+> **Note:** `textEmbeddingAda002` does not support the `dimensions` parameter — passing `outputDimensionality` is silently ignored for that model.
+
+#### Batch Embedding
+
+Pass up to 2,048 strings in a single request (max 300,000 tokens total across all inputs). Results are returned in the same order as the input regardless of how the API processes them.
+```swift
+let texts = documents.map(\.content)
+
+let embeddings = try await embeddingProvider.embedBatch(
+    texts: texts,
+    outputDimensionality: 1536  // Truncate large model to match small model's default
+)
+```
+
+#### Model Comparison
+
+| Model | MTEB (English) | MIRACL (Multilingual) | Price per 1M tokens |
+|---|---|---|---|
+| `text-embedding-3-large` | 64.6% | 54.9% | $0.13 |
+| `text-embedding-3-small` | 62.3% | 44.0% | $0.02 |
+| `text-embedding-ada-002` | 61.0% | 31.4% | $0.10 |
 
 ### Document Chunking
 
