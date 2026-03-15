@@ -79,6 +79,9 @@ A native Swift framework for building autonomous AI agents with support for mult
 - [Error Handling](#error-handling)
 - [Testing](#testing)
 
+## Documentation for AI Assistants
+- [LLM-Friendly Docs](#llm-friendly-documentation)
+
 ## Additional Resources
 - [Examples](#examples)
 - [Best Practices](#best-practices)
@@ -105,6 +108,7 @@ A native Swift framework for building autonomous AI agents with support for mult
 - **Type-Safe** - Full Swift type safety with Sendable and async/await
 - **Apple Intelligence** - Privacy-focused on-device AI support
 - **MLX Local LLMs** - Run open-source models offline on Apple Silicon with automatic Hugging Face downloads
+- **LLM-Friendly Documentation** - Comprehensive markdown docs (`CLAUDE.md` + `docs/`) for AI coding assistants to quickly understand and use the framework
 
 ## Installation
 
@@ -1093,6 +1097,21 @@ let chunks = DocumentChunker.createDocuments(
 let results = try await vectorStore.search(query: query, topK: 5)
 ```
 
+## LLM-Friendly Documentation
+
+SwiftAgent includes comprehensive markdown documentation designed for AI coding assistants (Claude Code, Cursor, GitHub Copilot, etc.) to quickly understand and use the framework.
+
+| File | Description |
+|------|-------------|
+| [`CLAUDE.md`](CLAUDE.md) | Quick-start reference with concise examples for every feature |
+| [`docs/providers.md`](docs/providers.md) | Full API reference for all LLM providers (Claude, OpenAI, Gemini, Apple Intelligence, MLX) |
+| [`docs/agents.md`](docs/agents.md) | Agent API, execution methods, streaming events, prompts, and message types |
+| [`docs/tools.md`](docs/tools.md) | Tool protocol, custom tool creation, and all built-in tool parameter tables |
+| [`docs/rag.md`](docs/rag.md) | Embedding providers, vector stores, document chunking, and RAG pipeline |
+| [`docs/advanced.md`](docs/advanced.md) | Multi-agent graphs, memory system, and human-in-the-loop |
+
+Add `CLAUDE.md` or the `docs/` folder to your AI assistant's context for accurate code generation with SwiftAgent.
+
 ## Contributing
 
 Contributions are welcome! Please:
@@ -1115,6 +1134,7 @@ Contributions are welcome! Please:
 - [x] Streaming responses
 - [x] Human-in-the-loop
 - [x] MLX local LLM support (offline, Apple Silicon)
+- [x] LLM-friendly documentation (`CLAUDE.md` + `docs/`)
 - [ ] Additional vector stores (Weaviate, Qdrant, Chroma)
 - [ ] Agent templates for common use cases
 - [ ] Audio/video support
