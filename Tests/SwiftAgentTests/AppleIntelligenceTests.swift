@@ -323,18 +323,18 @@ final class AppleIntelligenceTests: XCTestCase {
             eventCount += 1
             switch event {
             case .thinking(let text):
-                print("💭 ", terminator: "")
+                print("", terminator: "")
                 print(text, terminator: "")
             case .toolCall(let call):
-                print("\n🔧 Tool call: \(call.name)")
+                print("\n Tool call: \(call.name)")
             case .toolResult(let result, _):
                 print("Tool result: \(result)")
             case .response(let text):
-                print("📝 Response: \(text)")
+                print("Response: \(text)")
             case .completed(let result):
-                print("\n🎉 Completed! Output: \(result.output)")
+                print("\nCompleted! Output: \(result.output)")
             case .error(let error):
-                print("❌ Error: \(error)")
+                print("Error: \(error)")
             }
         }
         

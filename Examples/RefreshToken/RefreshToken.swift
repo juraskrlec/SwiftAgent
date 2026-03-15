@@ -40,27 +40,27 @@ struct RefreshToken {
         
         // Check if we have refresh token
         if let refreshToken = ProcessInfo.processInfo.environment["GOOGLE_REFRESH_TOKEN"], !refreshToken.isEmpty {
-            print("\n🔄 Using refresh token to get new access token...")
+            print("\nUsing refresh token to get new access token...")
             
             do {
                 let tokens = try await oauth.refreshToken(refreshToken: refreshToken)
                 
-                print("\n✅ New Access Token:")
+                print("\nNew Access Token:")
                 print(String(repeating: "=", count: 60))
                 print(tokens.accessToken)
                 print(String(repeating: "=", count: 60))
-                print("\n📋 Export:")
+                print("\nExport:")
                 print("export GOOGLE_ACCESS_TOKEN='\(tokens.accessToken)'")
-                print("\n💡 Token valid for ~1 hour")
+                print("\nToken valid for ~1 hour")
                 
             } catch {
-                print("❌ Refresh failed: \(error)")
-                print("\n💡 Refresh token might be invalid. Getting new auth code...")
+                print("Refresh failed: \(error)")
+                print("\nRefresh token might be invalid. Getting new auth code...")
                 try await getNewToken(oauth: oauth)
             }
             
         } else {
-            print("\n📝 No refresh token found. Need to authorize...")
+            print("\nNo refresh token found. Need to authorize...")
             try await getNewToken(oauth: oauth)
         }
     }
@@ -70,24 +70,24 @@ struct RefreshToken {
             scopes: ["https://www.googleapis.com/auth/calendar"]
         )
         
-        print("\n🌐 Open this URL in your browser:")
+        print("\nOpen this URL in your browser:")
         print(String(repeating: "=", count: 60))
         print(authURL.absoluteString)
         print(String(repeating: "=", count: 60))
         
-        print("\n📋 Paste the authorization code: ", terminator: "")
+        print("\nPaste the authorization code: ", terminator: "")
         fflush(stdout)
         
         guard let code = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !code.isEmpty else {
-            print("❌ No code provided")
+            print("No code provided")
             return
         }
         
-        print("\n🔄 Exchanging code for tokens...")
+        print("\nExchanging code for tokens...")
         
         let tokens = try await oauth.exchangeCodeForToken(code: code)
         
-        print("\n✅ Success!\n")
+        print("\nSuccess!\n")
         print("ACCESS TOKEN:")
         print(String(repeating: "=", count: 60))
         print(tokens.accessToken)

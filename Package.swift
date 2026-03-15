@@ -38,11 +38,23 @@ let package = Package(
             targets: ["RefreshToken"]
         )
     ],
+    dependencies: [
+        .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.30.6"),
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm/", branch: "main"),
+        .package(url: "https://github.com/huggingface/swift-transformers", from: "1.2.0"),
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "SwiftAgent"
+            name: "SwiftAgent",
+            dependencies: [.product(name: "MLX", package: "mlx-swift", condition: .when(platforms: [.macOS])),
+                           .product(name: "MLXNN", package: "mlx-swift", condition: .when(platforms: [.macOS])),
+                           .product(name: "MLXOptimizers", package: "mlx-swift", condition: .when(platforms: [.macOS])),
+                           .product(name: "MLXRandom", package: "mlx-swift", condition: .when(platforms: [.macOS])),
+                           .product(name: "MLXLLM", package: "mlx-swift-lm", condition: .when(platforms: [.macOS])),
+                           .product(name: "MLXLMCommon", package: "mlx-swift-lm", condition: .when(platforms: [.macOS])),
+                           .product(name: "Tokenizers", package: "swift-transformers", condition: .when(platforms: [.macOS]))]
         ),
         .testTarget(
             name: "SwiftAgentTests",

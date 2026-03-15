@@ -23,6 +23,7 @@ A native Swift framework for building autonomous AI agents with support for mult
 - [Using OpenAI](#using-openai)
 - [Using Gemini (Google)](#using-gemini-google)
 - [Using Apple Intelligence (On-Device)](#using-apple-intelligence-on-device)
+- [Using MLX (Local LLM on Apple Silicon)](#using-mlx-local-llm-on-apple-silicon)
 
 ## Core Capabilities
 
@@ -92,7 +93,7 @@ A native Swift framework for building autonomous AI agents with support for mult
 
 ## Features
 
-- **Multiple LLM Providers** - Claude (Anthropic), OpenAI (ChatGPT), Gemini (Google), and Apple Intelligence (on-device)
+- **Multiple LLM Providers** - Claude (Anthropic), OpenAI (ChatGPT), Gemini (Google), Apple Intelligence (on-device), and MLX (local LLM on Apple Silicon)
 - **Vision Support** - Analyze images with GPT-5, Claude Sonnet 4.6, and Gemini 3.1
 - **Tool System** - Built-in tools and easy custom tool creation
 - **Autonomous Agents** - Agents that can reason and use tools to accomplish tasks
@@ -103,6 +104,7 @@ A native Swift framework for building autonomous AI agents with support for mult
 - **Streaming Support** - Real-time response streaming for all providers
 - **Type-Safe** - Full Swift type safety with Sendable and async/await
 - **Apple Intelligence** - Privacy-focused on-device AI support
+- **MLX Local LLMs** - Run open-source models offline on Apple Silicon with automatic Hugging Face downloads
 
 ## Installation
 
@@ -230,6 +232,57 @@ let result = try await agent.run(task: "What's the date 7 days from now?")
 - iOS 26.0+, macOS 26.0+
 - Device with Apple Intelligence support (iPhone 15 Pro+, M1+ Macs)
 - FoundationModels framework
+
+### Using MLX (Local LLM on Apple Silicon)
+```swift
+// No API key needed - runs fully offline on Apple Silicon!
+let provider = try await MLXProvider(model: .llama3_2_3B)
+
+let agent = Agent(
+    name: "LocalAgent",
+    provider: provider,
+    systemPrompt: "You are a helpful assistant.",
+    tools: [DateTimeTool()]
+)
+
+let result = try await agent.run(task: "What day of the week is today?")
+```
+
+**Available models:**
+
+| Model | Enum Case | Size |
+|-------|-----------|------|
+| Llama 3.2 3B | `.llama3_2_3B` | ~1.8 GB |
+| Llama 3.2 1B | `.llama3_2_1B` | ~0.7 GB |
+| Llama 3.1 8B | `.llama3_1_8B` | ~4.5 GB |
+| Qwen 3 8B | `.qwen3_8B` | ~4.5 GB |
+| Qwen 3 4B | `.qwen3_4B` | ~2.5 GB |
+| Gemma 3 4B | `.gemma3_4B` | ~2.5 GB |
+| Phi-4 Mini | `.phi4Mini` | ~2.5 GB |
+| Mistral 7B | `.mistral7B` | ~4.0 GB |
+| DeepSeek-R1 8B | `.deepSeekR1_8B` | ~4.5 GB |
+| SmolLM2 1.7B | `.smolLM2_1_7B` | ~1.0 GB |
+| SmolLM2 360M | `.smolLM2_360M` | ~0.2 GB |
+
+Models are automatically downloaded from Hugging Face on first use and cached locally. You can also use any Hugging Face model ID or a local model directory:
+```swift
+// Any mlx-community model from Hugging Face
+let provider = try await MLXProvider(modelId: "mlx-community/Qwen2.5-7B-Instruct-4bit")
+
+// Local model directory
+let provider = try await MLXProvider(modelDirectory: URL(fileURLWithPath: "/path/to/model"))
+```
+
+**Track download progress:**
+```swift
+let provider = try await MLXProvider(model: .qwen3_4B) { progress in
+    print("Downloading: \(Int(progress.fractionCompleted * 100))%")
+}
+```
+
+**Requirements for MLX:**
+- macOS 14.0+
+- Apple Silicon Mac (M1+)
 
 ## Vision (Multimodal)
 
@@ -921,6 +974,7 @@ let result = try await graph.invoke(input: state)
 | **OpenAI** | ✅ Required | 💰 Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | ✅ Yes | 128K |
 | **Gemini** | ✅ Required | 🆓 Free/Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | ✅ Yes | 2M |
 | **Apple Intelligence** | ❌ Not needed | 🆓 Free | 🔒 On-device | ✅ Yes | ✅ Yes | ❌ No | 4K |
+| **MLX** | ❌ Not needed | 🆓 Free | 🔒 On-device | ✅ Yes | ✅ Yes | ❌ No | Model-dependent |
 
 ## Configuration
 
@@ -996,6 +1050,10 @@ swift test --filter MemoryTests
 - Apple Silicon Mac (M1+) or iPhone 15 Pro+
 - FoundationModels framework
 
+**For MLX:**
+- macOS 14.0+
+- Apple Silicon Mac (M1+)
+
 ## Examples
 
 Check out the `Examples/` directory:
@@ -1010,7 +1068,8 @@ Check out the `Examples/` directory:
 - **Complex reasoning**: GPT-5.2, Claude Sonnet 4.6, Gemini 3.1 Pro
 - **Vision**: GPT-5.2, Claude Sonnet 4.6, Gemini 3.1 Pro
 - **Speed and cost**: Gemini 3.0 Flash, Claude Haiku
-- **Privacy**: Apple Intelligence
+- **Privacy**: Apple Intelligence, MLX
+- **Offline / no API key**: Apple Intelligence, MLX
 - **Huge context**: Gemini (2M tokens)
 
 ### 2. Vision Best Practices
@@ -1048,13 +1107,14 @@ Contributions are welcome! Please:
 
 ## Roadmap
 
-- [x] Claude, OpenAI, Gemini, Apple Intelligence providers
+- [x] Claude, OpenAI, Gemini, Apple Intelligence, MLX providers
 - [x] Vision/multimodal support (images)
 - [x] RAG support (In-Memory, Pinecone)
 - [x] Memory system (SwiftData with iCloud sync)
 - [x] Multi-agent graphs
 - [x] Streaming responses
 - [x] Human-in-the-loop
+- [x] MLX local LLM support (offline, Apple Silicon)
 - [ ] Additional vector stores (Weaviate, Qdrant, Chroma)
 - [ ] Agent templates for common use cases
 - [ ] Audio/video support
