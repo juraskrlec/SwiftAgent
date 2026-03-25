@@ -120,7 +120,7 @@ A native Swift framework for building autonomous AI agents with support for mult
 Add SwiftAgent to your `Package.swift`:
 ```swift
 dependencies: [
-    .package(url: "https://github.com/juraskrlec/SwiftAgent", from: "1.0.0")
+    .package(url: "https://github.com/juraskrlec/SwiftAgent", from: "0.1.0")
 ]
 ```
 
