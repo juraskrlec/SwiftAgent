@@ -23,8 +23,6 @@ A native Swift framework for building autonomous AI agents with support for mult
 - [Using OpenAI](#using-openai)
 - [Using Gemini (Google)](#using-gemini-google)
 - [Using Apple Intelligence (On-Device)](#using-apple-intelligence-on-device)
-- [Using MLX (Local LLM on Apple Silicon)](#using-mlx-local-llm-on-apple-silicon)
-
 ## Core Capabilities
 
 ### Vision (Multimodal)
@@ -70,6 +68,11 @@ A native Swift framework for building autonomous AI agents with support for mult
 
 ## Advanced Features
 - [Multi-Agent Graphs](#multi-agent-graphs)
+- [Orchestration](#orchestration)
+  - [Basic Orchestrator](#basic-orchestrator)
+  - [Shared Workspace](#shared-workspace)
+  - [Custom Orchestrator Prompt](#custom-orchestrator-prompt)
+  - [AgentTool](#agenttool)
 - [Provider Comparison](#provider-comparison)
 
 ## Configuration & Usage
@@ -96,7 +99,7 @@ A native Swift framework for building autonomous AI agents with support for mult
 
 ## Features
 
-- **Multiple LLM Providers** - Claude (Anthropic), OpenAI (ChatGPT), Gemini (Google), Apple Intelligence (on-device), and MLX (local LLM on Apple Silicon)
+- **Multiple LLM Providers** - Claude (Anthropic), OpenAI (ChatGPT), Gemini (Google), and Apple Intelligence (on-device)
 - **Vision Support** - Analyze images with GPT-5, Claude Sonnet 4.6, and Gemini 3.1
 - **Tool System** - Built-in tools and easy custom tool creation
 - **Autonomous Agents** - Agents that can reason and use tools to accomplish tasks
@@ -107,7 +110,7 @@ A native Swift framework for building autonomous AI agents with support for mult
 - **Streaming Support** - Real-time response streaming for all providers
 - **Type-Safe** - Full Swift type safety with Sendable and async/await
 - **Apple Intelligence** - Privacy-focused on-device AI support
-- **MLX Local LLMs** - Run open-source models offline on Apple Silicon with automatic Hugging Face downloads
+- **Orchestration** - Coordinate multiple specialized agents with shared workspace
 - **LLM-Friendly Documentation** - Comprehensive markdown docs (`CLAUDE.md` + `docs/`) for AI coding assistants to quickly understand and use the framework
 
 ## Installation
@@ -236,57 +239,6 @@ let result = try await agent.run(task: "What's the date 7 days from now?")
 - iOS 26.0+, macOS 26.0+
 - Device with Apple Intelligence support (iPhone 15 Pro+, M1+ Macs)
 - FoundationModels framework
-
-### Using MLX (Local LLM on Apple Silicon)
-```swift
-// No API key needed - runs fully offline on Apple Silicon!
-let provider = try await MLXProvider(model: .llama3_2_3B)
-
-let agent = Agent(
-    name: "LocalAgent",
-    provider: provider,
-    systemPrompt: "You are a helpful assistant.",
-    tools: [DateTimeTool()]
-)
-
-let result = try await agent.run(task: "What day of the week is today?")
-```
-
-**Available models:**
-
-| Model | Enum Case | Size |
-|-------|-----------|------|
-| Llama 3.2 3B | `.llama3_2_3B` | ~1.8 GB |
-| Llama 3.2 1B | `.llama3_2_1B` | ~0.7 GB |
-| Llama 3.1 8B | `.llama3_1_8B` | ~4.5 GB |
-| Qwen 3 8B | `.qwen3_8B` | ~4.5 GB |
-| Qwen 3 4B | `.qwen3_4B` | ~2.5 GB |
-| Gemma 3 4B | `.gemma3_4B` | ~2.5 GB |
-| Phi-4 Mini | `.phi4Mini` | ~2.5 GB |
-| Mistral 7B | `.mistral7B` | ~4.0 GB |
-| DeepSeek-R1 8B | `.deepSeekR1_8B` | ~4.5 GB |
-| SmolLM2 1.7B | `.smolLM2_1_7B` | ~1.0 GB |
-| SmolLM2 360M | `.smolLM2_360M` | ~0.2 GB |
-
-Models are automatically downloaded from Hugging Face on first use and cached locally. You can also use any Hugging Face model ID or a local model directory:
-```swift
-// Any mlx-community model from Hugging Face
-let provider = try await MLXProvider(modelId: "mlx-community/Qwen2.5-7B-Instruct-4bit")
-
-// Local model directory
-let provider = try await MLXProvider(modelDirectory: URL(fileURLWithPath: "/path/to/model"))
-```
-
-**Track download progress:**
-```swift
-let provider = try await MLXProvider(model: .qwen3_4B) { progress in
-    print("Downloading: \(Int(progress.fractionCompleted * 100))%")
-}
-```
-
-**Requirements for MLX:**
-- macOS 14.0+
-- Apple Silicon Mac (M1+)
 
 ## Vision (Multimodal)
 
@@ -970,6 +922,121 @@ state.addMessage(.user("Research and write about Swift concurrency"))
 let result = try await graph.invoke(input: state)
 ```
 
+## Orchestration
+
+SwiftAgent provides a built-in orchestrator pattern for coordinating multiple specialized agents. An orchestrator agent delegates subtasks to worker agents and synthesizes their results using a shared workspace.
+
+### Basic Orchestrator
+```swift
+// Create specialized worker agents
+let researcher = Agent(
+    name: "Researcher",
+    provider: provider,
+    systemPrompt: "Research topics thoroughly using web search.",
+    tools: [WebSearchTool()],
+    maxIterations: 5
+)
+
+let analyst = Agent(
+    name: "Analyst",
+    provider: provider,
+    systemPrompt: "Analyze data and extract key trends and statistics.",
+    tools: [CalculatorTool()],
+    maxIterations: 3
+)
+
+let writer = Agent(
+    name: "Writer",
+    provider: provider,
+    systemPrompt: "Write clear, well-structured reports with executive summaries.",
+    maxIterations: 3
+)
+
+// Create orchestrator - automatically wraps workers as tools
+let (orchestrator, workspace) = Agent.orchestrator(
+    provider: provider,
+    workers: [researcher, analyst, writer],
+    maxIterations: 10
+)
+
+// Run a complex task - the orchestrator decides which agents to call
+let result = try await orchestrator.run(
+    task: "Research on-device AI on Apple platforms, analyze the capabilities, and write a report."
+)
+print(result.output)
+```
+
+The orchestrator LLM automatically:
+- Breaks down the task into subtasks
+- Delegates each subtask to the appropriate worker agent
+- Passes shared context between workers via the workspace
+- Synthesizes the final result
+
+### Shared Workspace
+
+The `Workspace` is a thread-safe actor that allows agents to share context:
+```swift
+// Pre-populate workspace with initial data
+let workspace = Workspace(initialData: [
+    "project": ["requirements": "Build a REST API with authentication"]
+])
+
+let (orchestrator, ws) = Agent.orchestrator(
+    provider: provider,
+    workers: [researcher, coder, reviewer],
+    workspace: workspace
+)
+
+let result = try await orchestrator.run(task: "Implement the project requirements")
+
+// Inspect what each agent contributed
+let log = await ws.contributionLog()
+for entry in log {
+    print("[\(entry.agentName)] \(entry.key): \(entry.value.prefix(100))...")
+}
+
+// Read a specific agent's output
+let review = await ws.read(namespace: "Reviewer", key: "result")
+```
+
+### Custom Orchestrator Prompt
+
+Provide a custom system prompt to control orchestration strategy:
+```swift
+let (orchestrator, workspace) = Agent.orchestrator(
+    name: "ProjectManager",
+    provider: provider,
+    systemPrompt: """
+    You are a project manager coordinating a development team.
+    Always start with research, then move to implementation, then review.
+    If the reviewer finds issues, send the work back to the implementer.
+    """,
+    workers: [researcher, coder, reviewer],
+    additionalTools: [FileSystemTool()],  // Extra tools for the orchestrator itself
+    maxIterations: 15
+)
+```
+
+### AgentTool
+
+Under the hood, each worker agent is wrapped in an `AgentTool` that the orchestrator LLM can call like any other tool:
+```swift
+// Manual AgentTool creation (advanced usage)
+let tool = AgentTool(
+    agent: researcher,
+    toolName: "research_agent",         // Custom tool name
+    toolDescription: "Search the web and compile research findings",
+    workspace: workspace                // Optional shared workspace
+)
+
+// Use it in any agent's tool list
+let agent = Agent(
+    name: "Coordinator",
+    provider: provider,
+    tools: [tool, CalculatorTool()]
+)
+```
+
 ## Provider Comparison
 
 | Provider | API Key | Cost | Privacy | Tools | Streaming | Vision | Context |
@@ -978,7 +1045,6 @@ let result = try await graph.invoke(input: state)
 | **OpenAI** | ✅ Required | 💰 Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | ✅ Yes | 128K |
 | **Gemini** | ✅ Required | 🆓 Free/Paid | ☁️ Cloud | ✅ Yes | ✅ Yes | ✅ Yes | 2M |
 | **Apple Intelligence** | ❌ Not needed | 🆓 Free | 🔒 On-device | ✅ Yes | ✅ Yes | ❌ No | 4K |
-| **MLX** | ❌ Not needed | 🆓 Free | 🔒 On-device | ✅ Yes | ✅ Yes | ❌ No | Model-dependent |
 
 ## Configuration
 
@@ -1054,16 +1120,13 @@ swift test --filter MemoryTests
 - Apple Silicon Mac (M1+) or iPhone 15 Pro+
 - FoundationModels framework
 
-**For MLX:**
-- macOS 14.0+
-- Apple Silicon Mac (M1+)
-
 ## Examples
 
 Check out the `Examples/` directory:
 - **ResearchAssistant** - Multi-agent research pipeline with RAG
 - **ContinuousLearner** - Agent that learns and improves over time
 - **PersonalAssistant** - Agent that manages your Google Calendar
+- **OrchestratorExample** - Multi-agent orchestration with shared workspace
 
 ## Best Practices
 
@@ -1072,8 +1135,8 @@ Check out the `Examples/` directory:
 - **Complex reasoning**: GPT-5.2, Claude Sonnet 4.6, Gemini 3.1 Pro
 - **Vision**: GPT-5.2, Claude Sonnet 4.6, Gemini 3.1 Pro
 - **Speed and cost**: Gemini 3.0 Flash, Claude Haiku
-- **Privacy**: Apple Intelligence, MLX
-- **Offline / no API key**: Apple Intelligence, MLX
+- **Privacy**: Apple Intelligence
+- **Offline / no API key**: Apple Intelligence
 - **Huge context**: Gemini (2M tokens)
 
 ### 2. Vision Best Practices
@@ -1104,7 +1167,7 @@ SwiftAgent includes comprehensive markdown documentation designed for AI coding 
 | File | Description |
 |------|-------------|
 | [`CLAUDE.md`](CLAUDE.md) | Quick-start reference with concise examples for every feature |
-| [`docs/providers.md`](docs/providers.md) | Full API reference for all LLM providers (Claude, OpenAI, Gemini, Apple Intelligence, MLX) |
+| [`docs/providers.md`](docs/providers.md) | Full API reference for all LLM providers (Claude, OpenAI, Gemini, Apple Intelligence) |
 | [`docs/agents.md`](docs/agents.md) | Agent API, execution methods, streaming events, prompts, and message types |
 | [`docs/tools.md`](docs/tools.md) | Tool protocol, custom tool creation, and all built-in tool parameter tables |
 | [`docs/rag.md`](docs/rag.md) | Embedding providers, vector stores, document chunking, and RAG pipeline |
@@ -1126,14 +1189,14 @@ Contributions are welcome! Please:
 
 ## Roadmap
 
-- [x] Claude, OpenAI, Gemini, Apple Intelligence, MLX providers
+- [x] Claude, OpenAI, Gemini, Apple Intelligence providers
 - [x] Vision/multimodal support (images)
 - [x] RAG support (In-Memory, Pinecone)
 - [x] Memory system (SwiftData with iCloud sync)
 - [x] Multi-agent graphs
 - [x] Streaming responses
 - [x] Human-in-the-loop
-- [x] MLX local LLM support (offline, Apple Silicon)
+- [x] Orchestrator multi-agent coordination
 - [x] LLM-friendly documentation (`CLAUDE.md` + `docs/`)
 - [ ] Additional vector stores (Weaviate, Qdrant, Chroma)
 - [ ] Agent templates for common use cases

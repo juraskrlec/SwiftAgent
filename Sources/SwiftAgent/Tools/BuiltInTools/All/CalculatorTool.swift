@@ -8,11 +8,11 @@
 import Foundation
 
 /// Performs mathematical calculations
-struct CalculatorTool: Tool {
+public struct CalculatorTool: Tool, Sendable {
     public let name = "calculator_tool"
     public let description = "Perform mathematical calculations. Supports basic math, algebra, and advanced functions."
     
-    var parameters: ToolParameters {
+    public var parameters: ToolParameters {
         ToolParameters(
             properties: [
                 "expression": ParameterProperty(
@@ -24,7 +24,9 @@ struct CalculatorTool: Tool {
         )
     }
     
-    func execute(arguments: [String: Any]) async throws -> String {
+    public init() {}
+    
+    public func execute(arguments: [String: Any]) async throws -> String {
         guard let expression = arguments["expression"] as? String else {
             throw ToolError.invalidArguments("Missing expression")
         }
