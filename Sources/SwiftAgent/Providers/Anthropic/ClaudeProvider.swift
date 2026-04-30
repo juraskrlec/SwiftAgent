@@ -11,6 +11,7 @@ import Foundation
 public actor ClaudeProvider: LLMProvider {
     public enum Model: String, Sendable {
         // Claude Opus models
+        case claudeOpus47 = "claude-opus-4-7"
         case claudeOpus46 = "claude-opus-4-6"
         case claudeOpus45 = "claude-opus-4-5-20251101"
         case claudeOpus41 = "claude-opus-4-1-20250805"
