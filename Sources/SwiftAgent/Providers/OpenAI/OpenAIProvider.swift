@@ -10,6 +10,7 @@ import Foundation
 public actor OpenAIProvider: LLMProvider, Sendable {
     
     public enum Model: String, Sendable {
+        case gpt55 = "gpt-5.5"
         case gpt54 = "gpt-5.4"
         case gpt54Pro = "gpt-5.4-pro"
         case gpt52Pro = "gpt-5.2-pro"
