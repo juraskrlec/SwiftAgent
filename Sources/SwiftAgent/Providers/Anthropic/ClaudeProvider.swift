@@ -11,6 +11,7 @@ import Foundation
 public actor ClaudeProvider: LLMProvider {
     public enum Model: String, Sendable {
         // Claude Opus models
+        case claudeOpus48 = "claude-opus-4-8"
         case claudeOpus47 = "claude-opus-4-7"
         case claudeOpus46 = "claude-opus-4-6"
         case claudeOpus45 = "claude-opus-4-5-20251101"
@@ -18,6 +19,7 @@ public actor ClaudeProvider: LLMProvider {
         case claudeOpus4 = "claude-opus-4-20250514"
         
         // Claude Sonnet models
+        case claudeSonnet46 = "claude-sonnet-4-6"
         case claudeSonnet45 = "claude-sonnet-4-5-20250929"
         case claudeSonnet4 = "claude-sonnet-4-20250514"
         
@@ -26,8 +28,8 @@ public actor ClaudeProvider: LLMProvider {
         case claudeHaiku3 = "claude-3-haiku-20240307"
         
         // Convenience aliases for latest versions
-        public static let opus = Model.claudeOpus46
-        public static let sonnet = Model.claudeSonnet45
+        public static let opus = Model.claudeOpus48
+        public static let sonnet = Model.claudeSonnet46
         public static let haiku = Model.claudeHaiku45
     }
     

@@ -10,6 +10,7 @@ import Foundation
 /// Google Gemini LLM Provider
 public actor GeminiProvider: LLMProvider {
     public enum Model: String, Sendable {
+        case gemini35Flash = "gemini-3.5-flash"
         case gemini31Pro = "gemini-3.1-pro-preview"
         case gemini31FlashLite = "gemini-3.1-flash-lite-preview"
         case gemini31FlashImage = "gemini-3.1-flash-image-preview"
